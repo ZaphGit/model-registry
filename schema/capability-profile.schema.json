@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "model-registry/capability-profile.schema.json",
+  "title": "Capability Profile",
+  "type": "object",
+  "required": ["id", "modelId", "recordStatus", "sourceUrl", "lastVerifiedAt"],
+  "properties": {
+    "id": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+    "modelId": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+    "recordStatus": { "type": "string", "enum": ["draft", "reviewed", "verified", "stale", "deprecated"] },
+    "modalities": {
+      "type": "object",
+      "properties": {
+        "textIn": { "type": "boolean" },
+        "textOut": { "type": "boolean" },
+        "imageIn": { "type": "boolean" },
+        "imageOut": { "type": "boolean" },
+        "audioIn": { "type": "boolean" },
+        "audioOut": { "type": "boolean" },
+        "videoIn": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
+    "features": {
+      "type": "object",
+      "properties": {
+        "toolCalling": { "type": "boolean" },
+        "structuredOutput": { "type": "boolean" },
+        "streaming": { "type": "boolean" },
+        "systemPrompt": { "type": "boolean" },
+        "reasoningMode": { "type": "boolean" },
+        "longContext": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
+    "limits": {
+      "type": "object",
+      "properties": {
+        "contextWindow": { "type": "number", "minimum": 0 },
+        "maxOutputTokens": { "type": "number", "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "operationalClasses": {
+      "type": "object",
+      "properties": {
+        "latencyClass": { "type": "string", "enum": ["low", "medium", "high"] },
+        "costClass": { "type": "string", "enum": ["low", "medium", "high"] },
+        "qualityClass": { "type": "string", "enum": ["low", "medium", "high", "frontier"] }
+      },
+      "additionalProperties": false
+    },
+    "sourceUrl": { "type": "string", "format": "uri" },
+    "lastVerifiedAt": { "type": "string", "format": "date" },
+    "notes": { "type": "string" }
+  },
+  "additionalProperties": false
+}

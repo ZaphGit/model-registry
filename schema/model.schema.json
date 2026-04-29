@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "model-registry/model.schema.json",
+  "title": "Model",
+  "type": "object",
+  "required": ["id", "providerId", "displayName", "apiModelId", "family", "tier", "status", "releaseStage", "recordStatus"],
+  "properties": {
+    "id": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+    "providerId": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+    "displayName": { "type": "string", "minLength": 1 },
+    "apiModelId": { "type": "string", "minLength": 1 },
+    "family": { "type": "string", "minLength": 1 },
+    "tier": { "type": "string", "minLength": 1 },
+    "status": { "type": "string", "enum": ["active", "preview", "deprecated", "experimental", "disabled"] },
+    "releaseStage": { "type": "string", "enum": ["preview", "active", "deprecated", "legacy", "experimental"] },
+    "recordStatus": { "type": "string", "enum": ["draft", "reviewed", "verified", "stale", "deprecated"] },
+    "description": { "type": "string" },
+    "notes": { "type": "string" },
+    "releasedAt": { "type": "string", "format": "date" },
+    "deprecatedAt": { "type": "string", "format": "date" },
+    "lastVerifiedAt": { "type": "string", "format": "date" },
+    "sourceUrls": {
+      "type": "array",
+      "items": { "type": "string", "format": "uri" },
+      "default": []
+    },
+    "aliases": {
+      "type": "array",
+      "items": { "type": "string" },
+      "default": []
+    }
+  },
+  "additionalProperties": false
+}

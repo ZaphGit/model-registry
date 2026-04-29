@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "model-registry/suitability-profile.schema.json",
+  "title": "Suitability Profile",
+  "type": "object",
+  "required": ["id", "modelId", "recordStatus", "confidence", "lastReviewedAt"],
+  "properties": {
+    "id": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+    "modelId": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+    "recordStatus": { "type": "string", "enum": ["draft", "reviewed", "verified", "stale", "deprecated"] },
+    "skillScores": {
+      "type": "object",
+      "additionalProperties": { "type": "number", "minimum": 0, "maximum": 1 }
+    },
+    "taskScores": {
+      "type": "object",
+      "additionalProperties": { "type": "number", "minimum": 0, "maximum": 1 }
+    },
+    "agentTypeScores": {
+      "type": "object",
+      "additionalProperties": { "type": "number", "minimum": 0, "maximum": 1 }
+    },
+    "recommendedFor": {
+      "type": "array",
+      "items": { "type": "string" },
+      "default": []
+    },
+    "avoidFor": {
+      "type": "array",
+      "items": { "type": "string" },
+      "default": []
+    },
+    "strengthNotes": { "type": "string" },
+    "weaknessNotes": { "type": "string" },
+    "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+    "lastReviewedAt": { "type": "string", "format": "date" },
+    "notes": { "type": "string" }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,72 @@
+[
+  {
+    "id": "suit-anthropic-sonnet",
+    "modelId": "anthropic-claude-sonnet-4-6",
+    "recordStatus": "reviewed",
+    "skillScores": { "coding": 0.95, "reasoning": 0.94, "writing": 0.92, "tool_use": 0.9 },
+    "taskScores": { "agent_orchestration": 0.9, "architecture": 0.93, "code_review": 0.94 },
+    "agentTypeScores": { "coding_agent": 0.96, "orchestrator": 0.88 },
+    "recommendedFor": ["coding", "system design", "agent workflows"],
+    "avoidFor": ["ultra-cheap bulk classification"],
+    "strengthNotes": "Strong coding and reasoning balance.",
+    "weaknessNotes": "Not the cheapest route.",
+    "confidence": 0.78,
+    "lastReviewedAt": "2026-04-28"
+  },
+  {
+    "id": "suit-openai-gpt54",
+    "modelId": "openai-gpt-5-4",
+    "recordStatus": "reviewed",
+    "skillScores": { "coding": 0.96, "reasoning": 0.95, "writing": 0.9, "tool_use": 0.91 },
+    "taskScores": { "agent_orchestration": 0.91, "architecture": 0.94, "code_review": 0.95 },
+    "agentTypeScores": { "coding_agent": 0.97, "orchestrator": 0.9 },
+    "recommendedFor": ["coding", "complex reasoning", "agent control"],
+    "avoidFor": ["budget-sensitive batch tasks"],
+    "strengthNotes": "High-end general capability.",
+    "weaknessNotes": "Higher cost class.",
+    "confidence": 0.8,
+    "lastReviewedAt": "2026-04-28"
+  },
+  {
+    "id": "suit-google-gemini25pro",
+    "modelId": "google-gemini-2-5-pro",
+    "recordStatus": "reviewed",
+    "skillScores": { "coding": 0.88, "reasoning": 0.94, "writing": 0.88, "multimodal": 0.96 },
+    "taskScores": { "research": 0.92, "multimodal_analysis": 0.97, "architecture": 0.9 },
+    "agentTypeScores": { "research_agent": 0.95, "coding_agent": 0.87 },
+    "recommendedFor": ["multimodal work", "research", "long context"],
+    "avoidFor": ["lowest-latency chat"],
+    "strengthNotes": "Excellent context and multimodal range.",
+    "weaknessNotes": "Can be slower and pricier for trivial tasks.",
+    "confidence": 0.78,
+    "lastReviewedAt": "2026-04-28"
+  },
+  {
+    "id": "suit-groq-llama33",
+    "modelId": "groq-llama-3-3-70b",
+    "recordStatus": "reviewed",
+    "skillScores": { "coding": 0.74, "reasoning": 0.76, "writing": 0.73, "low_latency_chat": 0.95 },
+    "taskScores": { "chat": 0.93, "classification": 0.82, "bulk_generation": 0.84 },
+    "agentTypeScores": { "chat_agent": 0.93, "coding_agent": 0.72 },
+    "recommendedFor": ["fast responses", "cheap interactive use"],
+    "avoidFor": ["frontier-grade coding"],
+    "strengthNotes": "Very fast and inexpensive.",
+    "weaknessNotes": "Lower peak capability than frontier models.",
+    "confidence": 0.75,
+    "lastReviewedAt": "2026-04-28"
+  },
+  {
+    "id": "suit-openrouter-sonnet",
+    "modelId": "openrouter-claude-sonnet-4-6",
+    "recordStatus": "reviewed",
+    "skillScores": { "coding": 0.93, "reasoning": 0.92, "writing": 0.9, "tool_use": 0.88 },
+    "taskScores": { "integration_testing": 0.88, "agent_orchestration": 0.89 },
+    "agentTypeScores": { "integration_agent": 0.92, "coding_agent": 0.92 },
+    "recommendedFor": ["aggregated access", "cross-provider integration work"],
+    "avoidFor": ["strictest direct-provider parity assumptions"],
+    "strengthNotes": "Useful when an aggregator route is desirable.",
+    "weaknessNotes": "Route-specific behaviour may differ from direct provider access.",
+    "confidence": 0.72,
+    "lastReviewedAt": "2026-04-28"
+  }
+]

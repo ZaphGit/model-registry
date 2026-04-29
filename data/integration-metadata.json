@@ -1,0 +1,62 @@
+[
+  {
+    "id": "int-anthropic-sonnet-openclaw",
+    "modelRouteId": "route-anthropic-sonnet-direct",
+    "integrationTarget": "openclaw",
+    "providerModelString": "anthropic/claude-sonnet-4-6",
+    "suggestedAlias": "sonnet",
+    "configHints": { "requiresRegistryEntry": true },
+    "compatibilityNotes": "Direct Anthropic route.",
+    "requiredFields": ["apiKey"],
+    "supportsFallbackRole": true,
+    "recordStatus": "reviewed"
+  },
+  {
+    "id": "int-openai-gpt54-openclaw",
+    "modelRouteId": "route-openai-gpt54-direct",
+    "integrationTarget": "openclaw",
+    "providerModelString": "openai-codex/gpt-5.4",
+    "suggestedAlias": "GPT",
+    "configHints": { "requiresRegistryEntry": true },
+    "compatibilityNotes": "Direct OpenAI route.",
+    "requiredFields": ["apiKey"],
+    "supportsFallbackRole": true,
+    "recordStatus": "reviewed"
+  },
+  {
+    "id": "int-google-gemini25pro-openclaw",
+    "modelRouteId": "route-google-gemini25pro-direct",
+    "integrationTarget": "openclaw",
+    "providerModelString": "google/gemini-2.5-pro",
+    "suggestedAlias": "gemini-pro",
+    "configHints": { "requiresRegistryEntry": true },
+    "compatibilityNotes": "Direct Google Gemini route.",
+    "requiredFields": ["apiKey"],
+    "supportsFallbackRole": true,
+    "recordStatus": "reviewed"
+  },
+  {
+    "id": "int-groq-llama33-openclaw",
+    "modelRouteId": "route-groq-llama33-direct",
+    "integrationTarget": "openclaw",
+    "providerModelString": "groq/llama-3.3-70b-versatile",
+    "suggestedAlias": "groq-llama",
+    "configHints": { "requiresRegistryEntry": true },
+    "compatibilityNotes": "Fast direct Groq route.",
+    "requiredFields": ["apiKey"],
+    "supportsFallbackRole": true,
+    "recordStatus": "reviewed"
+  },
+  {
+    "id": "int-openrouter-sonnet-openclaw",
+    "modelRouteId": "route-openrouter-sonnet-agg",
+    "integrationTarget": "openclaw",
+    "providerModelString": "openrouter/anthropic/claude-sonnet-4.6",
+    "suggestedAlias": "openrouter-sonnet",
+    "configHints": { "requiresRegistryEntry": true },
+    "compatibilityNotes": "Aggregator route through OpenRouter.",
+    "requiredFields": ["apiKey"],
+    "supportsFallbackRole": true,
+    "recordStatus": "reviewed"
+  }
+]

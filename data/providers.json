@@ -1,0 +1,62 @@
+[
+  {
+    "id": "anthropic",
+    "name": "Anthropic",
+    "type": "cloud",
+    "websiteUrl": "https://www.anthropic.com/",
+    "docsUrl": "https://docs.anthropic.com/",
+    "status": "active",
+    "recordStatus": "reviewed",
+    "lastVerifiedAt": "2026-04-28",
+    "sourceUrls": ["https://docs.anthropic.com/"],
+    "notes": "Initial beta seed provider record."
+  },
+  {
+    "id": "openai",
+    "name": "OpenAI",
+    "type": "cloud",
+    "websiteUrl": "https://openai.com/",
+    "docsUrl": "https://platform.openai.com/docs/overview",
+    "status": "active",
+    "recordStatus": "reviewed",
+    "lastVerifiedAt": "2026-04-28",
+    "sourceUrls": ["https://platform.openai.com/docs/overview"],
+    "notes": "Initial beta seed provider record."
+  },
+  {
+    "id": "google",
+    "name": "Google",
+    "type": "cloud",
+    "websiteUrl": "https://ai.google.dev/",
+    "docsUrl": "https://ai.google.dev/gemini-api/docs",
+    "status": "active",
+    "recordStatus": "reviewed",
+    "lastVerifiedAt": "2026-04-28",
+    "sourceUrls": ["https://ai.google.dev/gemini-api/docs"],
+    "notes": "Initial beta seed provider record."
+  },
+  {
+    "id": "groq",
+    "name": "Groq",
+    "type": "cloud",
+    "websiteUrl": "https://groq.com/",
+    "docsUrl": "https://console.groq.com/docs/overview",
+    "status": "active",
+    "recordStatus": "reviewed",
+    "lastVerifiedAt": "2026-04-28",
+    "sourceUrls": ["https://console.groq.com/docs/overview"],
+    "notes": "Initial beta seed provider record."
+  },
+  {
+    "id": "openrouter",
+    "name": "OpenRouter",
+    "type": "cloud",
+    "websiteUrl": "https://openrouter.ai/",
+    "docsUrl": "https://openrouter.ai/docs/overview/introduction",
+    "status": "active",
+    "recordStatus": "reviewed",
+    "lastVerifiedAt": "2026-04-28",
+    "sourceUrls": ["https://openrouter.ai/docs/overview/introduction"],
+    "notes": "Initial beta seed provider record."
+  }
+]

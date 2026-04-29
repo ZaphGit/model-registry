@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "model-registry/pricing-record.schema.json",
+  "title": "Pricing Record",
+  "type": "object",
+  "required": ["id", "modelRouteId", "currency", "billingUnit", "inputPrice", "outputPrice", "recordStatus", "sourceUrl", "lastVerifiedAt"],
+  "properties": {
+    "id": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+    "modelRouteId": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+    "currency": { "type": "string", "minLength": 3, "maxLength": 3 },
+    "billingUnit": { "type": "string", "enum": ["per_1m_tokens", "per_1k_tokens", "per_image", "per_second", "custom"] },
+    "inputPrice": { "type": "number", "minimum": 0 },
+    "outputPrice": { "type": "number", "minimum": 0 },
+    "cachedInputPrice": { "type": "number", "minimum": 0 },
+    "imagePrice": { "type": "number", "minimum": 0 },
+    "audioPrice": { "type": "number", "minimum": 0 },
+    "effectiveFrom": { "type": "string", "format": "date" },
+    "effectiveTo": { "type": "string", "format": "date" },
+    "recordStatus": { "type": "string", "enum": ["draft", "reviewed", "verified", "stale", "deprecated"] },
+    "sourceUrl": { "type": "string", "format": "uri" },
+    "lastVerifiedAt": { "type": "string", "format": "date" },
+    "notes": { "type": "string" }
+  },
+  "additionalProperties": false
+}

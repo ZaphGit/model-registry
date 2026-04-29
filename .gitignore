@@ -1,0 +1,4 @@
+node_modules/
+.next/
+desktop/model-registry.sqlite
+*.log

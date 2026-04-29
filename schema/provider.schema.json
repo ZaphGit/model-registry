@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "model-registry/provider.schema.json",
+  "title": "Provider",
+  "type": "object",
+  "required": ["id", "name", "type", "status", "recordStatus"],
+  "properties": {
+    "id": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+    "name": { "type": "string", "minLength": 1 },
+    "type": { "type": "string", "enum": ["cloud", "local", "proxy", "self-hosted"] },
+    "websiteUrl": { "type": "string", "format": "uri" },
+    "docsUrl": { "type": "string", "format": "uri" },
+    "status": { "type": "string", "enum": ["active", "preview", "deprecated", "disabled"] },
+    "recordStatus": { "type": "string", "enum": ["draft", "reviewed", "verified", "stale", "deprecated"] },
+    "lastVerifiedAt": { "type": "string", "format": "date" },
+    "sourceUrls": {
+      "type": "array",
+      "items": { "type": "string", "format": "uri" },
+      "default": []
+    },
+    "notes": { "type": "string" }
+  },
+  "additionalProperties": false
+}

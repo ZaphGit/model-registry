@@ -1,0 +1,62 @@
+[
+  {
+    "id": "price-anthropic-sonnet-direct",
+    "modelRouteId": "route-anthropic-sonnet-direct",
+    "currency": "USD",
+    "billingUnit": "per_1m_tokens",
+    "inputPrice": 3,
+    "outputPrice": 15,
+    "recordStatus": "draft",
+    "sourceUrl": "https://docs.anthropic.com/",
+    "lastVerifiedAt": "2026-04-28",
+    "notes": "Illustrative beta seed; verify against current provider pricing before production reliance."
+  },
+  {
+    "id": "price-openai-gpt54-direct",
+    "modelRouteId": "route-openai-gpt54-direct",
+    "currency": "USD",
+    "billingUnit": "per_1m_tokens",
+    "inputPrice": 10,
+    "outputPrice": 30,
+    "recordStatus": "draft",
+    "sourceUrl": "https://platform.openai.com/docs/overview",
+    "lastVerifiedAt": "2026-04-28",
+    "notes": "Illustrative beta seed; verify against current provider pricing before production reliance."
+  },
+  {
+    "id": "price-google-gemini25pro-direct",
+    "modelRouteId": "route-google-gemini25pro-direct",
+    "currency": "USD",
+    "billingUnit": "per_1m_tokens",
+    "inputPrice": 7,
+    "outputPrice": 21,
+    "recordStatus": "draft",
+    "sourceUrl": "https://ai.google.dev/gemini-api/docs",
+    "lastVerifiedAt": "2026-04-28",
+    "notes": "Illustrative beta seed; verify against current provider pricing before production reliance."
+  },
+  {
+    "id": "price-groq-llama33-direct",
+    "modelRouteId": "route-groq-llama33-direct",
+    "currency": "USD",
+    "billingUnit": "per_1m_tokens",
+    "inputPrice": 0.59,
+    "outputPrice": 0.79,
+    "recordStatus": "draft",
+    "sourceUrl": "https://console.groq.com/docs/overview",
+    "lastVerifiedAt": "2026-04-28",
+    "notes": "Illustrative beta seed; verify against current provider pricing before production reliance."
+  },
+  {
+    "id": "price-openrouter-sonnet-agg",
+    "modelRouteId": "route-openrouter-sonnet-agg",
+    "currency": "USD",
+    "billingUnit": "per_1m_tokens",
+    "inputPrice": 3.5,
+    "outputPrice": 16,
+    "recordStatus": "draft",
+    "sourceUrl": "https://openrouter.ai/docs/overview/introduction",
+    "lastVerifiedAt": "2026-04-28",
+    "notes": "Illustrative beta seed; verify against current provider pricing before production reliance."
+  }
+]

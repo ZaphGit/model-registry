@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "model-registry/integration-metadata.schema.json",
+  "title": "Integration Metadata",
+  "type": "object",
+  "required": ["id", "modelRouteId", "integrationTarget", "recordStatus"],
+  "properties": {
+    "id": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+    "modelRouteId": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+    "integrationTarget": { "type": "string", "enum": ["openclaw", "nemoclaw", "nanoclaw", "other"] },
+    "providerModelString": { "type": "string" },
+    "suggestedAlias": { "type": "string" },
+    "configHints": { "type": "object", "additionalProperties": true },
+    "compatibilityNotes": { "type": "string" },
+    "requiredFields": {
+      "type": "array",
+      "items": { "type": "string" },
+      "default": []
+    },
+    "supportsFallbackRole": { "type": "boolean" },
+    "recordStatus": { "type": "string", "enum": ["draft", "reviewed", "verified", "stale", "deprecated"] },
+    "notes": { "type": "string" }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,57 @@
+[
+  {
+    "id": "cap-anthropic-sonnet",
+    "modelId": "anthropic-claude-sonnet-4-6",
+    "recordStatus": "reviewed",
+    "modalities": { "textIn": true, "textOut": true, "imageIn": true, "imageOut": false, "audioIn": false, "audioOut": false, "videoIn": false },
+    "features": { "toolCalling": true, "structuredOutput": true, "streaming": true, "systemPrompt": true, "reasoningMode": true, "longContext": true },
+    "limits": { "contextWindow": 200000, "maxOutputTokens": 8192 },
+    "operationalClasses": { "latencyClass": "medium", "costClass": "medium", "qualityClass": "frontier" },
+    "sourceUrl": "https://docs.anthropic.com/",
+    "lastVerifiedAt": "2026-04-28"
+  },
+  {
+    "id": "cap-openai-gpt54",
+    "modelId": "openai-gpt-5-4",
+    "recordStatus": "reviewed",
+    "modalities": { "textIn": true, "textOut": true, "imageIn": true, "imageOut": false, "audioIn": false, "audioOut": false, "videoIn": false },
+    "features": { "toolCalling": true, "structuredOutput": true, "streaming": true, "systemPrompt": true, "reasoningMode": true, "longContext": true },
+    "limits": { "contextWindow": 200000, "maxOutputTokens": 16384 },
+    "operationalClasses": { "latencyClass": "medium", "costClass": "high", "qualityClass": "frontier" },
+    "sourceUrl": "https://platform.openai.com/docs/overview",
+    "lastVerifiedAt": "2026-04-28"
+  },
+  {
+    "id": "cap-google-gemini25pro",
+    "modelId": "google-gemini-2-5-pro",
+    "recordStatus": "reviewed",
+    "modalities": { "textIn": true, "textOut": true, "imageIn": true, "imageOut": false, "audioIn": true, "audioOut": false, "videoIn": true },
+    "features": { "toolCalling": true, "structuredOutput": true, "streaming": true, "systemPrompt": true, "reasoningMode": true, "longContext": true },
+    "limits": { "contextWindow": 1000000, "maxOutputTokens": 8192 },
+    "operationalClasses": { "latencyClass": "medium", "costClass": "high", "qualityClass": "frontier" },
+    "sourceUrl": "https://ai.google.dev/gemini-api/docs",
+    "lastVerifiedAt": "2026-04-28"
+  },
+  {
+    "id": "cap-groq-llama33",
+    "modelId": "groq-llama-3-3-70b",
+    "recordStatus": "reviewed",
+    "modalities": { "textIn": true, "textOut": true, "imageIn": false, "imageOut": false, "audioIn": false, "audioOut": false, "videoIn": false },
+    "features": { "toolCalling": true, "structuredOutput": true, "streaming": true, "systemPrompt": true, "reasoningMode": false, "longContext": true },
+    "limits": { "contextWindow": 131072, "maxOutputTokens": 4096 },
+    "operationalClasses": { "latencyClass": "low", "costClass": "low", "qualityClass": "medium" },
+    "sourceUrl": "https://console.groq.com/docs/overview",
+    "lastVerifiedAt": "2026-04-28"
+  },
+  {
+    "id": "cap-openrouter-sonnet",
+    "modelId": "openrouter-claude-sonnet-4-6",
+    "recordStatus": "reviewed",
+    "modalities": { "textIn": true, "textOut": true, "imageIn": true, "imageOut": false, "audioIn": false, "audioOut": false, "videoIn": false },
+    "features": { "toolCalling": true, "structuredOutput": true, "streaming": true, "systemPrompt": true, "reasoningMode": true, "longContext": true },
+    "limits": { "contextWindow": 200000, "maxOutputTokens": 8192 },
+    "operationalClasses": { "latencyClass": "medium", "costClass": "medium", "qualityClass": "frontier" },
+    "sourceUrl": "https://openrouter.ai/docs/overview/introduction",
+    "lastVerifiedAt": "2026-04-28"
+  }
+]
