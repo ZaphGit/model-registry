@@ -29,6 +29,7 @@ const integrationTargets = ['openclaw', 'nemoclaw', 'nanoclaw', 'other'] as cons
 const inputStyle = { padding: 10, borderRadius: 10, border: '1px solid var(--line)' } as const;
 const sectionStyle = { display: 'grid', gap: 12, border: '1px solid var(--line)', borderRadius: 14, padding: 16 } as const;
 const nestedCardStyle = { display: 'grid', gap: 12, border: '1px solid #e6ebf5', borderRadius: 12, padding: 12, background: '#fafcff' } as const;
+const routeStackStyle = { display: 'grid', gap: 16, border: '1px solid #d9e4f2', borderRadius: 16, padding: 16, background: '#fcfdff' } as const;
 
 function SaveButton({ label }: { label: string }) {
   const { pending } = useFormStatus();
@@ -58,15 +59,24 @@ function BooleanSelect({ name, defaultValue }: { name: string; defaultValue: boo
 }
 
 function TextInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
-  return <input {...props} style={inputStyle} />;
+  return <input {...props} style={{ ...inputStyle, ...(props.style ?? {}) }} />;
 }
 
 function TextArea(props: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
-  return <textarea {...props} style={inputStyle} />;
+  return <textarea {...props} style={{ ...inputStyle, ...(props.style ?? {}) }} />;
 }
 
 function Select(props: React.SelectHTMLAttributes<HTMLSelectElement>) {
-  return <select {...props} style={inputStyle} />;
+  return <select {...props} style={{ ...inputStyle, ...(props.style ?? {}) }} />;
+}
+
+function SectionTitle({ title, subtitle }: { title: string; subtitle?: string }) {
+  return (
+    <div style={{ display: 'grid', gap: 4 }}>
+      <h3 style={{ margin: 0 }}>{title}</h3>
+      {subtitle ? <div style={{ fontSize: 13, color: 'var(--muted)' }}>{subtitle}</div> : null}
+    </div>
+  );
 }
 
 function money(value: number | null) {
@@ -199,7 +209,7 @@ export function ModelEditor({ rows, details, providerOptions }: Props) {
 
       {isOpen && selected ? (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(10, 16, 30, 0.48)', display: 'flex', justifyContent: 'center', alignItems: 'center', padding: 24 }} onClick={() => setIsOpen(false)}>
-          <div style={{ width: 'min(1080px, 100%)', maxHeight: '90vh', overflow: 'auto', background: 'white', borderRadius: 18, padding: 24, boxShadow: '0 24px 80px rgba(0,0,0,0.25)' }} onClick={(event) => event.stopPropagation()}>
+          <div style={{ width: 'min(1160px, 100%)', maxHeight: '90vh', overflow: 'auto', background: 'white', borderRadius: 18, padding: 24, boxShadow: '0 24px 80px rgba(0,0,0,0.25)' }} onClick={(event) => event.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, alignItems: 'start', marginBottom: 20 }}>
               <div><h2 style={{ margin: '0 0 8px 0' }}>{selected.model.displayName}</h2><div style={{ color: 'var(--muted)', fontSize: 14 }}>{selected.provider?.name ?? 'Unknown provider'} · {selected.model.apiModelId}</div></div>
               <button onClick={() => setIsOpen(false)} style={{ border: '1px solid var(--line)', background: 'white', borderRadius: 10, padding: '8px 12px', cursor: 'pointer' }}>Close</button>
@@ -208,7 +218,7 @@ export function ModelEditor({ rows, details, providerOptions }: Props) {
             <div style={{ display: 'grid', gap: 20 }}>
               <form action={saveModelAction} style={{ display: 'grid', gap: 18, border: '1px solid var(--line)', borderRadius: 14, padding: 16 }}>
                 <input type="hidden" name="id" value={selected.model.id} />
-                <h3 style={{ margin: 0 }}>Model</h3>
+                <SectionTitle title="Model" subtitle="Core identity and lifecycle metadata for this model." />
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 16 }}>
                   <Field label="Display name"><TextInput name="displayName" defaultValue={selected.model.displayName} /></Field>
                   <Field label="Family"><TextInput name="family" defaultValue={selected.model.family} /></Field>
@@ -221,7 +231,7 @@ export function ModelEditor({ rows, details, providerOptions }: Props) {
               </form>
 
               <section style={sectionStyle}>
-                <h3 style={{ margin: 0 }}>Add route</h3>
+                <SectionTitle title="Add route" subtitle="Create an additional route before attaching pricing or integration metadata to it." />
                 <form action={createRouteAction} style={{ display: 'grid', gap: 12 }}>
                   <input type="hidden" name="modelId" value={selected.model.id} />
                   <input type="hidden" name="providerId" value={selected.model.providerId} />
@@ -235,8 +245,9 @@ export function ModelEditor({ rows, details, providerOptions }: Props) {
                 </form>
               </section>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 16 }}>
-                {selected.routes.map((route) => {
+              <section style={{ display: 'grid', gap: 16 }}>
+                <SectionTitle title="Routes" subtitle={`${selected.routes.length} route${selected.routes.length === 1 ? '' : 's'} attached to this model. Each route owns its own pricing and integration metadata.`} />
+                {selected.routes.map((route, index) => {
                   const routeBooleanFields = [
                     { name: 'supportsTools', value: Boolean(route.supportsTools) },
                     { name: 'supportsStreaming', value: Boolean(route.supportsStreaming) },
@@ -249,90 +260,110 @@ export function ModelEditor({ rows, details, providerOptions }: Props) {
                   const availableTargets = integrationTargets.filter((target) => !usedTargets.has(target));
 
                   return (
-                    <div key={route.id} style={{ display: 'grid', gap: 16 }}>
-                      <form action={saveRouteAction} style={sectionStyle}>
-                        <input type="hidden" name="id" value={route.id} />
-                        <h3 style={{ marginTop: 0 }}>Route</h3>
-                        <Field label="Label"><TextInput name="label" defaultValue={route.label} /></Field>
-                        <Field label="Base URL"><TextInput name="baseUrl" defaultValue={route.baseUrl ?? ''} /></Field>
-                        <Field label="Route type"><Select name="routeType" defaultValue={route.routeType}>{routeTypes.map((option) => <option key={option} value={option}>{option}</option>)}</Select></Field>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 12 }}>{routeBooleanFields.map((field) => <Field key={field.name} label={field.name}><BooleanSelect name={field.name} defaultValue={field.value} /></Field>)}</div>
-                        <div style={{ display: 'flex', justifyContent: 'flex-end' }}><SaveButton label="Save route" /></div>
-                      </form>
-
-                      <section style={sectionStyle}>
-                        <h3 style={{ margin: 0 }}>Pricing</h3>
-                        {routePricing.map((pricing) => (
-                          <form key={pricing.id} action={savePricingAction} style={nestedCardStyle}>
-                            <input type="hidden" name="id" value={pricing.id} />
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 12 }}>
-                              <Field label="Billing unit"><Select name="billingUnit" defaultValue={pricing.billingUnit}>{pricingUnits.map((option) => <option key={option} value={option}>{option}</option>)}</Select></Field>
-                              <Field label="Currency"><TextInput name="currency" defaultValue={pricing.currency} /></Field>
-                              <Field label="Input price"><TextInput name="inputPrice" defaultValue={pricing.inputPrice} /></Field>
-                              <Field label="Output price"><TextInput name="outputPrice" defaultValue={pricing.outputPrice} /></Field>
-                              <Field label="Cached input price"><TextInput name="cachedInputPrice" defaultValue={pricing.cachedInputPrice ?? ''} /></Field>
-                            </div>
-                            <Field label="Notes"><TextArea name="notes" defaultValue={pricing.notes ?? ''} rows={2} /></Field>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}><div style={{ fontSize: 12, color: 'var(--muted)' }}>{money(pricing.inputPrice)} in / {money(pricing.outputPrice)} out</div><SaveButton label="Save pricing" /></div>
-                          </form>
-                        ))}
-                        <form action={createPricingAction} style={{ display: 'grid', gap: 12, borderTop: '1px solid var(--line)', paddingTop: 12 }}>
-                          <input type="hidden" name="modelRouteId" value={route.id} />
-                          <div style={{ fontWeight: 600 }}>Add pricing record</div>
-                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 12 }}>
-                            <Field label="Billing unit"><Select name="billingUnit" defaultValue="per_1m_tokens">{pricingUnits.map((option) => <option key={option} value={option}>{option}</option>)}</Select></Field>
-                            <Field label="Currency"><TextInput name="currency" defaultValue="USD" /></Field>
-                            <Field label="Input price"><TextInput name="inputPrice" /></Field>
-                            <Field label="Output price"><TextInput name="outputPrice" /></Field>
-                            <Field label="Cached input price"><TextInput name="cachedInputPrice" /></Field>
+                    <div key={route.id} style={routeStackStyle}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, alignItems: 'start' }}>
+                        <div>
+                          <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--muted)' }}>Route {index + 1}</div>
+                          <h3 style={{ margin: '4px 0 6px 0' }}>{route.label}</h3>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, fontSize: 12, color: 'var(--muted)' }}>
+                            <span>{route.routeType}</span>
+                            <span>•</span>
+                            <span>{route.baseUrl ?? 'No base URL'}</span>
+                            <span>•</span>
+                            <span>{routePricing.length} pricing record{routePricing.length === 1 ? '' : 's'}</span>
+                            <span>•</span>
+                            <span>{routeIntegrations.length} integration{routeIntegrations.length === 1 ? '' : 's'}</span>
                           </div>
-                          <Field label="Notes"><TextArea name="notes" rows={2} /></Field>
-                          <div style={{ display: 'flex', justifyContent: 'flex-end' }}><SaveButton label="Add pricing" /></div>
-                        </form>
-                      </section>
+                        </div>
+                      </div>
 
-                      <section style={sectionStyle}>
-                        <h3 style={{ margin: 0 }}>Integrations</h3>
-                        {routeIntegrations.map((metadata) => (
-                          <form key={metadata.id} action={saveIntegrationAction} style={nestedCardStyle}>
-                            <input type="hidden" name="id" value={metadata.id} />
-                            <div style={{ fontWeight: 600 }}>{metadata.integrationTarget}</div>
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 16 }}>
-                              <Field label="Suggested alias"><TextInput name="suggestedAlias" defaultValue={metadata.suggestedAlias ?? ''} /></Field>
-                              <Field label="Provider model string"><TextInput name="providerModelString" defaultValue={metadata.providerModelString ?? ''} /></Field>
-                              <Field label="Required fields (comma-separated)"><TextInput name="requiredFields" defaultValue={metadata.requiredFields?.join(', ') ?? ''} /></Field>
-                              <Field label="Supports fallback role"><BooleanSelect name="supportsFallbackRole" defaultValue={Boolean(metadata.supportsFallbackRole)} /></Field>
-                            </div>
-                            <Field label="Compatibility notes"><TextArea name="compatibilityNotes" defaultValue={metadata.compatibilityNotes ?? ''} rows={3} /></Field>
-                            <div style={{ display: 'flex', justifyContent: 'flex-end' }}><SaveButton label={`Save ${metadata.integrationTarget}`} /></div>
-                          </form>
-                        ))}
-                        {availableTargets.length ? (
-                          <form action={createIntegrationAction} style={{ display: 'grid', gap: 12, borderTop: '1px solid var(--line)', paddingTop: 12 }}>
-                            <input type="hidden" name="modelRouteId" value={route.id} />
-                            <div style={{ fontWeight: 600 }}>Add integration</div>
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 12 }}>
-                              <Field label="Target"><Select name="integrationTarget" defaultValue={availableTargets[0]}>{availableTargets.map((option) => <option key={option} value={option}>{option}</option>)}</Select></Field>
-                              <Field label="Suggested alias"><TextInput name="suggestedAlias" /></Field>
-                              <Field label="Provider model string"><TextInput name="providerModelString" /></Field>
-                              <Field label="Required fields (comma-separated)"><TextInput name="requiredFields" defaultValue="apiKey" /></Field>
-                              <Field label="Supports fallback role"><BooleanSelect name="supportsFallbackRole" defaultValue="true" /></Field>
-                            </div>
-                            <Field label="Compatibility notes"><TextArea name="compatibilityNotes" rows={2} /></Field>
-                            <div style={{ display: 'flex', justifyContent: 'flex-end' }}><SaveButton label="Add integration" /></div>
-                          </form>
-                        ) : (
-                          <div style={{ borderTop: '1px solid var(--line)', paddingTop: 12, fontSize: 13, color: 'var(--muted)' }}>All integration targets already exist for this route.</div>
-                        )}
-                      </section>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1.05fr 0.95fr', gap: 16, alignItems: 'start' }}>
+                        <form action={saveRouteAction} style={sectionStyle}>
+                          <input type="hidden" name="id" value={route.id} />
+                          <SectionTitle title="Route settings" subtitle="Edit the transport-level behavior and declared capabilities for this route." />
+                          <Field label="Label"><TextInput name="label" defaultValue={route.label} /></Field>
+                          <Field label="Base URL"><TextInput name="baseUrl" defaultValue={route.baseUrl ?? ''} /></Field>
+                          <Field label="Route type"><Select name="routeType" defaultValue={route.routeType}>{routeTypes.map((option) => <option key={option} value={option}>{option}</option>)}</Select></Field>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 12 }}>{routeBooleanFields.map((field) => <Field key={field.name} label={field.name}><BooleanSelect name={field.name} defaultValue={field.value} /></Field>)}</div>
+                          <div style={{ display: 'flex', justifyContent: 'flex-end' }}><SaveButton label="Save route" /></div>
+                        </form>
+
+                        <div style={{ display: 'grid', gap: 16 }}>
+                          <section style={sectionStyle}>
+                            <SectionTitle title="Pricing" subtitle="Costs are attached to the route rather than the model overall." />
+                            {routePricing.map((pricing) => (
+                              <form key={pricing.id} action={savePricingAction} style={nestedCardStyle}>
+                                <input type="hidden" name="id" value={pricing.id} />
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 12 }}>
+                                  <Field label="Billing unit"><Select name="billingUnit" defaultValue={pricing.billingUnit}>{pricingUnits.map((option) => <option key={option} value={option}>{option}</option>)}</Select></Field>
+                                  <Field label="Currency"><TextInput name="currency" defaultValue={pricing.currency} /></Field>
+                                  <Field label="Input price"><TextInput name="inputPrice" defaultValue={pricing.inputPrice} /></Field>
+                                  <Field label="Output price"><TextInput name="outputPrice" defaultValue={pricing.outputPrice} /></Field>
+                                  <Field label="Cached input price"><TextInput name="cachedInputPrice" defaultValue={pricing.cachedInputPrice ?? ''} /></Field>
+                                </div>
+                                <Field label="Notes"><TextArea name="notes" defaultValue={pricing.notes ?? ''} rows={2} /></Field>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}><div style={{ fontSize: 12, color: 'var(--muted)' }}>{money(pricing.inputPrice)} in / {money(pricing.outputPrice)} out</div><SaveButton label="Save pricing" /></div>
+                              </form>
+                            ))}
+                            <form action={createPricingAction} style={{ display: 'grid', gap: 12, borderTop: '1px solid var(--line)', paddingTop: 12 }}>
+                              <input type="hidden" name="modelRouteId" value={route.id} />
+                              <div style={{ fontWeight: 600 }}>Add pricing record</div>
+                              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 12 }}>
+                                <Field label="Billing unit"><Select name="billingUnit" defaultValue="per_1m_tokens">{pricingUnits.map((option) => <option key={option} value={option}>{option}</option>)}</Select></Field>
+                                <Field label="Currency"><TextInput name="currency" defaultValue="USD" /></Field>
+                                <Field label="Input price"><TextInput name="inputPrice" /></Field>
+                                <Field label="Output price"><TextInput name="outputPrice" /></Field>
+                                <Field label="Cached input price"><TextInput name="cachedInputPrice" /></Field>
+                              </div>
+                              <Field label="Notes"><TextArea name="notes" rows={2} /></Field>
+                              <div style={{ display: 'flex', justifyContent: 'flex-end' }}><SaveButton label="Add pricing" /></div>
+                            </form>
+                          </section>
+
+                          <section style={sectionStyle}>
+                            <SectionTitle title="Integrations" subtitle="Mapping metadata for consumers like OpenClaw, NemoClaw, or NanoClaw." />
+                            {routeIntegrations.map((metadata) => (
+                              <form key={metadata.id} action={saveIntegrationAction} style={nestedCardStyle}>
+                                <input type="hidden" name="id" value={metadata.id} />
+                                <div style={{ fontWeight: 600 }}>{metadata.integrationTarget}</div>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 16 }}>
+                                  <Field label="Suggested alias"><TextInput name="suggestedAlias" defaultValue={metadata.suggestedAlias ?? ''} /></Field>
+                                  <Field label="Provider model string"><TextInput name="providerModelString" defaultValue={metadata.providerModelString ?? ''} /></Field>
+                                  <Field label="Required fields (comma-separated)"><TextInput name="requiredFields" defaultValue={metadata.requiredFields?.join(', ') ?? ''} /></Field>
+                                  <Field label="Supports fallback role"><BooleanSelect name="supportsFallbackRole" defaultValue={Boolean(metadata.supportsFallbackRole)} /></Field>
+                                </div>
+                                <Field label="Compatibility notes"><TextArea name="compatibilityNotes" defaultValue={metadata.compatibilityNotes ?? ''} rows={3} /></Field>
+                                <div style={{ display: 'flex', justifyContent: 'flex-end' }}><SaveButton label={`Save ${metadata.integrationTarget}`} /></div>
+                              </form>
+                            ))}
+                            {availableTargets.length ? (
+                              <form action={createIntegrationAction} style={{ display: 'grid', gap: 12, borderTop: '1px solid var(--line)', paddingTop: 12 }}>
+                                <input type="hidden" name="modelRouteId" value={route.id} />
+                                <div style={{ fontWeight: 600 }}>Add integration</div>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 12 }}>
+                                  <Field label="Target"><Select name="integrationTarget" defaultValue={availableTargets[0]}>{availableTargets.map((option) => <option key={option} value={option}>{option}</option>)}</Select></Field>
+                                  <Field label="Suggested alias"><TextInput name="suggestedAlias" /></Field>
+                                  <Field label="Provider model string"><TextInput name="providerModelString" /></Field>
+                                  <Field label="Required fields (comma-separated)"><TextInput name="requiredFields" defaultValue="apiKey" /></Field>
+                                  <Field label="Supports fallback role"><BooleanSelect name="supportsFallbackRole" defaultValue="true" /></Field>
+                                </div>
+                                <Field label="Compatibility notes"><TextArea name="compatibilityNotes" rows={2} /></Field>
+                                <div style={{ display: 'flex', justifyContent: 'flex-end' }}><SaveButton label="Add integration" /></div>
+                              </form>
+                            ) : (
+                              <div style={{ borderTop: '1px solid var(--line)', paddingTop: 12, fontSize: 13, color: 'var(--muted)' }}>All integration targets already exist for this route.</div>
+                            )}
+                          </section>
+                        </div>
+                      </div>
                     </div>
                   );
                 })}
-              </div>
+              </section>
 
               <form action={saveCapabilityAction} style={{ display: 'grid', gap: 16, border: '1px solid var(--line)', borderRadius: 14, padding: 16 }}>
                 <input type="hidden" name="modelId" value={selected.model.id} />
-                <h3 style={{ margin: 0 }}>Capabilities</h3>
+                <SectionTitle title="Capabilities" subtitle="Context limits, quality bands, and behavior flags that apply at the model level." />
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 16 }}>
                   <Field label="Context window"><TextInput name="contextWindow" defaultValue={selected.capabilityProfile?.limits?.contextWindow ?? ''} /></Field>
                   <Field label="Max output tokens"><TextInput name="maxOutputTokens" defaultValue={selected.capabilityProfile?.limits?.maxOutputTokens ?? ''} /></Field>
@@ -346,7 +377,7 @@ export function ModelEditor({ rows, details, providerOptions }: Props) {
 
               <form action={saveSuitabilityAction} style={{ display: 'grid', gap: 16, border: '1px solid var(--line)', borderRadius: 14, padding: 16 }}>
                 <input type="hidden" name="modelId" value={selected.model.id} />
-                <h3 style={{ margin: 0 }}>Suitability / specialisation</h3>
+                <SectionTitle title="Suitability / specialisation" subtitle="Where this model is strong, where it is weak, and how it should be selected." />
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 16 }}>
                   <Field label="Strength notes"><TextArea name="strengthNotes" defaultValue={selected.suitabilityProfile?.strengthNotes ?? ''} rows={3} /></Field>
                   <Field label="Weakness notes"><TextArea name="weaknessNotes" defaultValue={selected.suitabilityProfile?.weaknessNotes ?? ''} rows={3} /></Field>
