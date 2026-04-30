@@ -24,6 +24,21 @@ function scoreMapToText(map?: Record<string, number>) {
   return Object.entries(map ?? {}).map(([key, value]) => `${key}=${value}`).join('\n');
 }
 
+function contextBucket(contextWindow: number | null) {
+  if (!contextWindow) return 'unknown';
+  if (contextWindow >= 500000) return 'xl';
+  if (contextWindow >= 100000) return 'large';
+  if (contextWindow >= 32000) return 'medium';
+  return 'small';
+}
+
+function costBucket(inputPrice: number | null) {
+  if (inputPrice == null) return 'unknown';
+  if (inputPrice < 1) return 'low';
+  if (inputPrice < 5) return 'medium';
+  return 'high';
+}
+
 export function ModelEditor({ rows, details, providerOptions }: Props) {
   const [selectedModelId, setSelectedModelId] = useState<string | null>(rows[0]?.modelId ?? null);
   const [isOpen, setIsOpen] = useState(false);
@@ -31,6 +46,9 @@ export function ModelEditor({ rows, details, providerOptions }: Props) {
   const [integrationFilter, setIntegrationFilter] = useState('all');
   const [skillFilter, setSkillFilter] = useState('');
   const [toolsOnly, setToolsOnly] = useState(false);
+  const [qualityFilter, setQualityFilter] = useState('all');
+  const [contextFilter, setContextFilter] = useState('all');
+  const [costFilter, setCostFilter] = useState('all');
   const [isCreateOpen, setIsCreateOpen] = useState(false);
 
   const detailMap = useMemo(() => new Map(details.map((detail) => [detail.model.id, detail])), [details]);
@@ -41,13 +59,16 @@ export function ModelEditor({ rows, details, providerOptions }: Props) {
     if (providerFilter !== 'all' && row.providerName !== providerFilter) return false;
     if (integrationFilter !== 'all' && !row.integrationTargets.includes(integrationFilter)) return false;
     if (toolsOnly && !row.supportsTools) return false;
+    if (qualityFilter !== 'all' && (row.qualityClass ?? 'unknown') !== qualityFilter) return false;
+    if (contextFilter !== 'all' && contextBucket(row.contextWindow) !== contextFilter) return false;
+    if (costFilter !== 'all' && costBucket(row.inputPrice) !== costFilter) return false;
     if (skillFilter.trim()) {
       const needle = skillFilter.trim().toLowerCase();
       const haystack = [row.displayName, row.family, ...row.suitabilityKeywords].join(' ').toLowerCase();
       if (!haystack.includes(needle)) return false;
     }
     return true;
-  }), [rows, providerFilter, integrationFilter, toolsOnly, skillFilter]);
+  }), [rows, providerFilter, integrationFilter, toolsOnly, qualityFilter, contextFilter, costFilter, skillFilter]);
 
   return (
     <>
@@ -62,6 +83,9 @@ export function ModelEditor({ rows, details, providerOptions }: Props) {
           <label style={{ display: 'grid', gap: 6 }}><span>Integration target</span><select value={integrationFilter} onChange={(event) => setIntegrationFilter(event.target.value)} style={{ padding: 10, borderRadius: 10, border: '1px solid var(--line)' }}>{integrationOptions.map((option) => <option key={option} value={option}>{option}</option>)}</select></label>
           <label style={{ display: 'grid', gap: 6 }}><span>Skill / suitability keyword</span><input value={skillFilter} onChange={(event) => setSkillFilter(event.target.value)} placeholder="coding, multimodal, orchestrator…" style={{ padding: 10, borderRadius: 10, border: '1px solid var(--line)' }} /></label>
           <label style={{ display: 'grid', gap: 6 }}><span>Tools support</span><select value={toolsOnly ? 'yes' : 'all'} onChange={(event) => setToolsOnly(event.target.value === 'yes')} style={{ padding: 10, borderRadius: 10, border: '1px solid var(--line)' }}><option value="all">all</option><option value="yes">tools only</option></select></label>
+          <label style={{ display: 'grid', gap: 6 }}><span>Quality class</span><select value={qualityFilter} onChange={(event) => setQualityFilter(event.target.value)} style={{ padding: 10, borderRadius: 10, border: '1px solid var(--line)' }}><option value="all">all</option>{['low', 'medium', 'high', 'frontier', 'unknown'].map((option) => <option key={option} value={option}>{option}</option>)}</select></label>
+          <label style={{ display: 'grid', gap: 6 }}><span>Context size</span><select value={contextFilter} onChange={(event) => setContextFilter(event.target.value)} style={{ padding: 10, borderRadius: 10, border: '1px solid var(--line)' }}><option value="all">all</option>{['small', 'medium', 'large', 'xl', 'unknown'].map((option) => <option key={option} value={option}>{option}</option>)}</select></label>
+          <label style={{ display: 'grid', gap: 6 }}><span>Cost band</span><select value={costFilter} onChange={(event) => setCostFilter(event.target.value)} style={{ padding: 10, borderRadius: 10, border: '1px solid var(--line)' }}><option value="all">all</option>{['low', 'medium', 'high', 'unknown'].map((option) => <option key={option} value={option}>{option}</option>)}</select></label>
         </div>
         <div style={{ fontSize: 13, color: 'var(--muted)' }}>{filteredRows.length} model rows match current filters.</div>
       </div>
