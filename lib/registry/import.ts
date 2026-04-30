@@ -40,6 +40,7 @@ export interface ModelBundleImport {
     taskScores?: Record<string, number>;
     agentTypeScores?: Record<string, number>;
     notes?: string;
+    sourceNote?: string;
   };
   routes: Array<{
     label: string;
@@ -50,6 +51,7 @@ export interface ModelBundleImport {
     supportsStructuredOutput?: boolean;
     supportsReasoningMode?: boolean;
     sourceUrl?: string;
+    notes?: string;
     pricing?: Array<{
       billingUnit: PricingRecord['billingUnit'];
       currency: string;
@@ -214,6 +216,7 @@ export function parseModelBundleImport(input: string): ModelBundleImport {
           taskScores: asScoreMap(parsed.suitability.taskScores),
           agentTypeScores: asScoreMap(parsed.suitability.agentTypeScores),
           notes: asOptionalString(parsed.suitability.notes),
+          sourceNote: asOptionalString(parsed.suitability.sourceNote),
         }
       : undefined,
     routes: routes.map((route, index) => {
@@ -227,6 +230,7 @@ export function parseModelBundleImport(input: string): ModelBundleImport {
         supportsStructuredOutput: isBoolean(route.supportsStructuredOutput) ? route.supportsStructuredOutput : undefined,
         supportsReasoningMode: isBoolean(route.supportsReasoningMode) ? route.supportsReasoningMode : undefined,
         sourceUrl: asOptionalString(route.sourceUrl),
+        notes: asOptionalString(route.notes),
         pricing: Array.isArray(route.pricing)
           ? route.pricing.map((pricing, pricingIndex) => {
               if (!isRecord(pricing)) throw new Error(`Pricing record at route ${index}, pricing ${pricingIndex} must be an object.`);

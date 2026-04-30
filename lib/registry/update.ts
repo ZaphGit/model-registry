@@ -132,6 +132,17 @@ function integrationIdFor(modelId: string, integrationTarget: IntegrationMetadat
   return `int-${modelId}-${slugify(routeId)}-${integrationTarget}`;
 }
 
+function mergeSourceUrls(existing: string[] | undefined, next: string | undefined) {
+  const merged = new Set([...(existing ?? []), ...(next ? [next] : [])].filter(Boolean));
+  return [...merged];
+}
+
+function appendNote(existing: string | undefined, next: string | undefined) {
+  if (!next) return existing;
+  if (!existing) return next;
+  return existing.includes(next) ? existing : `${existing}\n${next}`;
+}
+
 export function createModelRecord(input: CreateModelInput) {
   const db = SqliteRegistryStore.getDb();
   const modelId = modelIdFor(input.providerId, input.apiModelId);
@@ -178,7 +189,8 @@ export function upsertModelBundle(bundle: ModelBundleImport) {
           tier: bundle.model.tier,
           status: bundle.model.status,
           description: bundle.model.description,
-          notes: bundle.model.notes,
+          notes: appendNote((JSON.parse(existingModelRow.payload) as Model).notes, bundle.model.notes),
+          sourceUrls: mergeSourceUrls((JSON.parse(existingModelRow.payload) as Model).sourceUrls, bundle.model.sourceUrl),
           lastVerifiedAt: today,
         }
       : {
@@ -194,7 +206,7 @@ export function upsertModelBundle(bundle: ModelBundleImport) {
           description: bundle.model.description,
           notes: bundle.model.notes,
           aliases: [],
-          sourceUrls: [],
+          sourceUrls: bundle.model.sourceUrl ? [bundle.model.sourceUrl] : [],
           lastVerifiedAt: today,
         };
 
@@ -206,24 +218,26 @@ export function upsertModelBundle(bundle: ModelBundleImport) {
 
     const capabilityId = `cap-${modelId}`;
     const capabilityRow = db.prepare('SELECT payload FROM capability_profiles WHERE model_id = ? LIMIT 1').get(modelId) as { payload: string } | undefined;
+    const existingCapability = capabilityRow ? (JSON.parse(capabilityRow.payload) as CapabilityProfile) : null;
     const capability: CapabilityProfile = {
-      ...(capabilityRow ? (JSON.parse(capabilityRow.payload) as CapabilityProfile) : { id: capabilityId, modelId, recordStatus: 'draft', sourceUrl: '', lastVerifiedAt: today, modalities: { textIn: true, textOut: true }, features: {}, limits: {}, operationalClasses: {} }),
+      ...(existingCapability ?? { id: capabilityId, modelId, recordStatus: 'draft', sourceUrl: '', lastVerifiedAt: today, modalities: { textIn: true, textOut: true }, features: {}, limits: {}, operationalClasses: {} }),
       lastVerifiedAt: today,
-      notes: bundle.capability?.notes,
+      notes: appendNote(existingCapability?.notes, bundle.capability?.notes),
+      sourceUrl: bundle.capability?.sourceUrl ?? existingCapability?.sourceUrl ?? '',
       features: {
-        ...(capabilityRow ? (JSON.parse(capabilityRow.payload) as CapabilityProfile).features : {}),
+        ...(existingCapability?.features ?? {}),
         toolCalling: bundle.capability?.toolCalling,
         structuredOutput: bundle.capability?.structuredOutput,
         streaming: bundle.capability?.streaming,
         reasoningMode: bundle.capability?.reasoningMode,
       },
       limits: {
-        ...(capabilityRow ? (JSON.parse(capabilityRow.payload) as CapabilityProfile).limits : {}),
+        ...(existingCapability?.limits ?? {}),
         contextWindow: bundle.capability?.contextWindow,
         maxOutputTokens: bundle.capability?.maxOutputTokens,
       },
       operationalClasses: {
-        ...(capabilityRow ? (JSON.parse(capabilityRow.payload) as CapabilityProfile).operationalClasses : {}),
+        ...(existingCapability?.operationalClasses ?? {}),
         qualityClass: bundle.capability?.qualityClass,
         costClass: bundle.capability?.costClass,
         latencyClass: bundle.capability?.latencyClass,
@@ -238,8 +252,9 @@ export function upsertModelBundle(bundle: ModelBundleImport) {
 
     const suitabilityId = `suit-${modelId}`;
     const suitabilityRow = db.prepare('SELECT payload FROM suitability_profiles WHERE model_id = ? LIMIT 1').get(modelId) as { payload: string } | undefined;
+    const existingSuitability = suitabilityRow ? (JSON.parse(suitabilityRow.payload) as SuitabilityProfile) : null;
     const suitability: SuitabilityProfile = {
-      ...(suitabilityRow ? (JSON.parse(suitabilityRow.payload) as SuitabilityProfile) : { id: suitabilityId, modelId, recordStatus: 'draft', confidence: 0.5, lastReviewedAt: today, skillScores: {}, taskScores: {}, agentTypeScores: {}, recommendedFor: [], avoidFor: [] }),
+      ...(existingSuitability ?? { id: suitabilityId, modelId, recordStatus: 'draft', confidence: 0.5, lastReviewedAt: today, skillScores: {}, taskScores: {}, agentTypeScores: {}, recommendedFor: [], avoidFor: [] }),
       strengthNotes: bundle.suitability?.strengthNotes,
       weaknessNotes: bundle.suitability?.weaknessNotes,
       recommendedFor: bundle.suitability?.recommendedFor ?? [],
@@ -247,6 +262,7 @@ export function upsertModelBundle(bundle: ModelBundleImport) {
       skillScores: bundle.suitability?.skillScores ?? {},
       taskScores: bundle.suitability?.taskScores ?? {},
       agentTypeScores: bundle.suitability?.agentTypeScores ?? {},
+      notes: appendNote(existingSuitability?.notes, appendNote(bundle.suitability?.notes, bundle.suitability?.sourceNote)),
       lastReviewedAt: today,
     };
 
@@ -259,9 +275,10 @@ export function upsertModelBundle(bundle: ModelBundleImport) {
     for (const routeInput of bundle.routes) {
       const routeId = routeIdFor(modelId, routeInput.label);
       const routeRow = db.prepare('SELECT payload FROM model_routes WHERE id = ?').get(routeId) as { payload: string } | undefined;
+      const existingRoute = routeRow ? (JSON.parse(routeRow.payload) as ModelRoute) : null;
       const route: ModelRoute = routeRow
         ? {
-            ...(JSON.parse(routeRow.payload) as ModelRoute),
+            ...existingRoute!,
             label: routeInput.label,
             routeType: routeInput.routeType,
             baseUrl: routeInput.baseUrl,
@@ -269,6 +286,8 @@ export function upsertModelBundle(bundle: ModelBundleImport) {
             supportsStreaming: routeInput.supportsStreaming,
             supportsStructuredOutput: routeInput.supportsStructuredOutput,
             supportsReasoningMode: routeInput.supportsReasoningMode,
+            sourceUrl: routeInput.sourceUrl ?? existingRoute?.sourceUrl,
+            notes: appendNote(existingRoute?.notes, routeInput.notes),
             lastVerifiedAt: today,
           }
         : {
@@ -286,6 +305,8 @@ export function upsertModelBundle(bundle: ModelBundleImport) {
             supportsReasoningMode: routeInput.supportsReasoningMode,
             status: 'active',
             recordStatus: 'draft',
+            sourceUrl: routeInput.sourceUrl,
+            notes: routeInput.notes,
             lastVerifiedAt: today,
           };
 
@@ -298,15 +319,17 @@ export function upsertModelBundle(bundle: ModelBundleImport) {
       for (const pricingInput of routeInput.pricing ?? []) {
         const pricingId = pricingIdFor(routeId, pricingInput.billingUnit);
         const pricingRow = db.prepare('SELECT payload FROM pricing_records WHERE id = ?').get(pricingId) as { payload: string } | undefined;
+        const existingPricing = pricingRow ? (JSON.parse(pricingRow.payload) as PricingRecord) : null;
         const pricing: PricingRecord = pricingRow
           ? {
-              ...(JSON.parse(pricingRow.payload) as PricingRecord),
+              ...existingPricing!,
               currency: pricingInput.currency,
               billingUnit: pricingInput.billingUnit,
               inputPrice: pricingInput.inputPrice,
               outputPrice: pricingInput.outputPrice,
               cachedInputPrice: pricingInput.cachedInputPrice,
-              notes: pricingInput.notes,
+              notes: appendNote(existingPricing?.notes, pricingInput.notes),
+              sourceUrl: pricingInput.sourceUrl ?? existingPricing?.sourceUrl ?? '',
               lastVerifiedAt: today,
             }
           : {
@@ -318,7 +341,7 @@ export function upsertModelBundle(bundle: ModelBundleImport) {
               outputPrice: pricingInput.outputPrice,
               cachedInputPrice: pricingInput.cachedInputPrice,
               recordStatus: 'draft',
-              sourceUrl: '',
+              sourceUrl: pricingInput.sourceUrl ?? '',
               lastVerifiedAt: today,
               notes: pricingInput.notes,
             };
@@ -333,14 +356,16 @@ export function upsertModelBundle(bundle: ModelBundleImport) {
       for (const integrationInput of routeInput.integrations ?? []) {
         const integrationId = integrationIdFor(modelId, integrationInput.integrationTarget, routeId);
         const integrationRow = db.prepare('SELECT payload FROM integration_metadata WHERE id = ?').get(integrationId) as { payload: string } | undefined;
+        const existingIntegration = integrationRow ? (JSON.parse(integrationRow.payload) as IntegrationMetadata) : null;
         const integration: IntegrationMetadata = integrationRow
           ? {
-              ...(JSON.parse(integrationRow.payload) as IntegrationMetadata),
+              ...existingIntegration!,
               suggestedAlias: integrationInput.suggestedAlias,
               providerModelString: integrationInput.providerModelString,
               compatibilityNotes: integrationInput.compatibilityNotes,
               requiredFields: integrationInput.requiredFields ?? [],
               supportsFallbackRole: integrationInput.supportsFallbackRole,
+              notes: appendNote(existingIntegration?.notes, integrationInput.notes),
             }
           : {
               id: integrationId,
@@ -351,6 +376,7 @@ export function upsertModelBundle(bundle: ModelBundleImport) {
               compatibilityNotes: integrationInput.compatibilityNotes,
               requiredFields: integrationInput.requiredFields ?? [],
               supportsFallbackRole: integrationInput.supportsFallbackRole,
+              notes: integrationInput.notes,
               recordStatus: 'draft',
             };
 
