@@ -301,6 +301,12 @@ export function createIntegrationRecord(input: CreateIntegrationInput) {
   const routeRow = db.prepare('SELECT payload FROM model_routes WHERE id = ?').get(input.modelRouteId) as { payload: string } | undefined;
   if (!routeRow) throw new Error(`Route not found for integration metadata: ${input.modelRouteId}`);
 
+  const existingRows = db.prepare('SELECT payload FROM integration_metadata WHERE model_route_id = ?').all(input.modelRouteId) as { payload: string }[];
+  const existing = existingRows.map((row) => JSON.parse(row.payload) as IntegrationMetadata);
+  if (existing.some((item) => item.integrationTarget === input.integrationTarget)) {
+    throw new Error(`Integration target already exists for route: ${input.integrationTarget}`);
+  }
+
   const route = JSON.parse(routeRow.payload) as ModelRoute;
   const integrationId = `int-${route.modelId}-${input.integrationTarget}-${Date.now()}`;
   const integration: IntegrationMetadata = {

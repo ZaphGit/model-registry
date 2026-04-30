@@ -289,6 +289,8 @@ export function ModelEditor({ rows, details, providerOptions }: Props) {
                   ];
                   const routePricing = selected.pricingRecords.filter((pricing) => pricing.modelRouteId === route.id);
                   const routeIntegrations = selected.integrationMetadata.filter((metadata) => metadata.modelRouteId === route.id);
+                  const usedTargets = new Set(routeIntegrations.map((metadata) => metadata.integrationTarget));
+                  const availableTargets = integrationTargets.filter((target) => !usedTargets.has(target));
 
                   return (
                     <div key={route.id} style={{ display: 'grid', gap: 16 }}>
@@ -356,19 +358,25 @@ export function ModelEditor({ rows, details, providerOptions }: Props) {
                             <div style={{ display: 'flex', justifyContent: 'flex-end' }}><SaveButton label={`Save ${metadata.integrationTarget}`} /></div>
                           </form>
                         ))}
-                        <form action={createIntegrationAction} style={{ display: 'grid', gap: 12, borderTop: '1px solid var(--line)', paddingTop: 12 }}>
-                          <input type="hidden" name="modelRouteId" value={route.id} />
-                          <div style={{ fontWeight: 600 }}>Add integration</div>
-                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 12 }}>
-                            <label style={{ display: 'grid', gap: 6 }}><span>Target</span><select name="integrationTarget" defaultValue="openclaw" style={{ padding: 10, borderRadius: 10, border: '1px solid var(--line)' }}>{integrationTargets.map((option) => <option key={option} value={option}>{option}</option>)}</select></label>
-                            <label style={{ display: 'grid', gap: 6 }}><span>Suggested alias</span><input name="suggestedAlias" style={{ padding: 10, borderRadius: 10, border: '1px solid var(--line)' }} /></label>
-                            <label style={{ display: 'grid', gap: 6 }}><span>Provider model string</span><input name="providerModelString" style={{ padding: 10, borderRadius: 10, border: '1px solid var(--line)' }} /></label>
-                            <label style={{ display: 'grid', gap: 6 }}><span>Required fields (comma-separated)</span><input name="requiredFields" defaultValue="apiKey" style={{ padding: 10, borderRadius: 10, border: '1px solid var(--line)' }} /></label>
-                            <label style={{ display: 'grid', gap: 6 }}><span>Supports fallback role</span><select name="supportsFallbackRole" defaultValue="true" style={{ padding: 10, borderRadius: 10, border: '1px solid var(--line)' }}><option value="true">true</option><option value="false">false</option></select></label>
+                        {availableTargets.length ? (
+                          <form action={createIntegrationAction} style={{ display: 'grid', gap: 12, borderTop: '1px solid var(--line)', paddingTop: 12 }}>
+                            <input type="hidden" name="modelRouteId" value={route.id} />
+                            <div style={{ fontWeight: 600 }}>Add integration</div>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 12 }}>
+                              <label style={{ display: 'grid', gap: 6 }}><span>Target</span><select name="integrationTarget" defaultValue={availableTargets[0]} style={{ padding: 10, borderRadius: 10, border: '1px solid var(--line)' }}>{availableTargets.map((option) => <option key={option} value={option}>{option}</option>)}</select></label>
+                              <label style={{ display: 'grid', gap: 6 }}><span>Suggested alias</span><input name="suggestedAlias" style={{ padding: 10, borderRadius: 10, border: '1px solid var(--line)' }} /></label>
+                              <label style={{ display: 'grid', gap: 6 }}><span>Provider model string</span><input name="providerModelString" style={{ padding: 10, borderRadius: 10, border: '1px solid var(--line)' }} /></label>
+                              <label style={{ display: 'grid', gap: 6 }}><span>Required fields (comma-separated)</span><input name="requiredFields" defaultValue="apiKey" style={{ padding: 10, borderRadius: 10, border: '1px solid var(--line)' }} /></label>
+                              <label style={{ display: 'grid', gap: 6 }}><span>Supports fallback role</span><select name="supportsFallbackRole" defaultValue="true" style={{ padding: 10, borderRadius: 10, border: '1px solid var(--line)' }}><option value="true">true</option><option value="false">false</option></select></label>
+                            </div>
+                            <label style={{ display: 'grid', gap: 6 }}><span>Compatibility notes</span><textarea name="compatibilityNotes" rows={2} style={{ padding: 10, borderRadius: 10, border: '1px solid var(--line)' }} /></label>
+                            <div style={{ display: 'flex', justifyContent: 'flex-end' }}><SaveButton label="Add integration" /></div>
+                          </form>
+                        ) : (
+                          <div style={{ borderTop: '1px solid var(--line)', paddingTop: 12, fontSize: 13, color: 'var(--muted)' }}>
+                            All integration targets already exist for this route.
                           </div>
-                          <label style={{ display: 'grid', gap: 6 }}><span>Compatibility notes</span><textarea name="compatibilityNotes" rows={2} style={{ padding: 10, borderRadius: 10, border: '1px solid var(--line)' }} /></label>
-                          <div style={{ display: 'flex', justifyContent: 'flex-end' }}><SaveButton label="Add integration" /></div>
-                        </form>
+                        )}
                       </section>
                     </div>
                   );
