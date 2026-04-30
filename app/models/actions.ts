@@ -1,8 +1,8 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { createModelRecord, updateCapabilityRecord, updateIntegrationRecord, updateModelRecord, updateRouteRecord, updateSuitabilityRecord } from '@/lib/registry/update';
-import type { CapabilityProfile, IntegrationMetadata, Model, ModelRoute } from '@/lib/registry/types';
+import { createModelRecord, createPricingRecord, updateCapabilityRecord, updateIntegrationRecord, updateModelRecord, updatePricingRecord, updateRouteRecord, updateSuitabilityRecord } from '@/lib/registry/update';
+import type { CapabilityProfile, IntegrationMetadata, Model, ModelRoute, PricingRecord } from '@/lib/registry/types';
 
 function asModelStatus(value: string): Model['status'] {
   if (value === 'active' || value === 'preview' || value === 'deprecated' || value === 'experimental' || value === 'disabled') return value;
@@ -17,6 +17,11 @@ function asIntegrationTarget(value: string): IntegrationMetadata['integrationTar
 function asRouteType(value: string): ModelRoute['routeType'] {
   if (value === 'direct' || value === 'proxy' || value === 'aggregator' || value === 'internal') return value;
   return 'direct';
+}
+
+function asPricingUnit(value: string): PricingRecord['billingUnit'] {
+  if (value === 'per_1m_tokens' || value === 'per_1k_tokens' || value === 'per_image' || value === 'per_second' || value === 'custom') return value;
+  return 'per_1m_tokens';
 }
 
 function asQualityClass(value: string): NonNullable<CapabilityProfile['operationalClasses']>['qualityClass'] | undefined {
@@ -47,6 +52,12 @@ function parseOptionalNumber(value: FormDataEntryValue | null): number | undefin
   if (!text) return undefined;
   const number = Number(text);
   return Number.isFinite(number) ? number : undefined;
+}
+
+function parseRequiredNumber(value: FormDataEntryValue | null, fieldName: string): number {
+  const number = parseOptionalNumber(value);
+  if (number == null) throw new Error(`${fieldName} is required and must be numeric.`);
+  return number;
 }
 
 function parseBoolean(value: FormDataEntryValue | null): boolean {
@@ -101,6 +112,40 @@ export async function saveCapabilityAction(formData: FormData) {
     qualityClass: asQualityClass(String(formData.get('qualityClass') ?? '')),
     costClass: asClass(String(formData.get('costClass') ?? '')),
     latencyClass: asClass(String(formData.get('latencyClass') ?? '')),
+  });
+
+  revalidatePath('/models');
+}
+
+export async function savePricingAction(formData: FormData) {
+  const id = String(formData.get('id') ?? '');
+  if (!id) throw new Error('Pricing record id is required.');
+
+  updatePricingRecord({
+    id,
+    billingUnit: asPricingUnit(String(formData.get('billingUnit') ?? 'per_1m_tokens')),
+    currency: String(formData.get('currency') ?? 'USD').trim() || 'USD',
+    inputPrice: parseRequiredNumber(formData.get('inputPrice'), 'Input price'),
+    outputPrice: parseRequiredNumber(formData.get('outputPrice'), 'Output price'),
+    cachedInputPrice: parseOptionalNumber(formData.get('cachedInputPrice')),
+    notes: String(formData.get('notes') ?? '').trim(),
+  });
+
+  revalidatePath('/models');
+}
+
+export async function createPricingAction(formData: FormData) {
+  const modelRouteId = String(formData.get('modelRouteId') ?? '');
+  if (!modelRouteId) throw new Error('Model route id is required for pricing creation.');
+
+  createPricingRecord({
+    modelRouteId,
+    billingUnit: asPricingUnit(String(formData.get('billingUnit') ?? 'per_1m_tokens')),
+    currency: String(formData.get('currency') ?? 'USD').trim() || 'USD',
+    inputPrice: parseRequiredNumber(formData.get('inputPrice'), 'Input price'),
+    outputPrice: parseRequiredNumber(formData.get('outputPrice'), 'Output price'),
+    cachedInputPrice: parseOptionalNumber(formData.get('cachedInputPrice')),
+    notes: String(formData.get('notes') ?? '').trim(),
   });
 
   revalidatePath('/models');

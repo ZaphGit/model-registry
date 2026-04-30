@@ -1,5 +1,5 @@
 import { SqliteRegistryStore } from './sqlite-store';
-import type { CapabilityProfile, IntegrationMetadata, Model, ModelRoute, SuitabilityProfile } from './types';
+import type { CapabilityProfile, IntegrationMetadata, Model, ModelRoute, PricingRecord, SuitabilityProfile } from './types';
 
 export interface UpdateModelInput {
   id: string;
@@ -43,6 +43,26 @@ export interface UpdateCapabilityInput {
   qualityClass?: NonNullable<CapabilityProfile['operationalClasses']>['qualityClass'];
   costClass?: NonNullable<CapabilityProfile['operationalClasses']>['costClass'];
   latencyClass?: NonNullable<CapabilityProfile['operationalClasses']>['latencyClass'];
+}
+
+export interface UpdatePricingInput {
+  id: string;
+  billingUnit: PricingRecord['billingUnit'];
+  currency: string;
+  inputPrice: number;
+  outputPrice: number;
+  cachedInputPrice?: number;
+  notes?: string;
+}
+
+export interface CreatePricingInput {
+  modelRouteId: string;
+  billingUnit: PricingRecord['billingUnit'];
+  currency: string;
+  inputPrice: number;
+  outputPrice: number;
+  cachedInputPrice?: number;
+  notes?: string;
 }
 
 export interface UpdateSuitabilityInput {
@@ -151,6 +171,53 @@ export function updateCapabilityRecord(input: UpdateCapabilityInput) {
 
   db.prepare('UPDATE capability_profiles SET payload = ? WHERE id = ?').run(JSON.stringify(updated), row.id);
   return updated;
+}
+
+export function updatePricingRecord(input: UpdatePricingInput) {
+  const db = SqliteRegistryStore.getDb();
+  const row = db.prepare('SELECT payload FROM pricing_records WHERE id = ?').get(input.id) as { payload: string } | undefined;
+  if (!row) throw new Error(`Pricing record not found: ${input.id}`);
+
+  const existing = JSON.parse(row.payload) as PricingRecord;
+  const updated: PricingRecord = {
+    ...existing,
+    billingUnit: input.billingUnit,
+    currency: input.currency,
+    inputPrice: input.inputPrice,
+    outputPrice: input.outputPrice,
+    cachedInputPrice: input.cachedInputPrice,
+    notes: input.notes?.trim() || undefined,
+  };
+
+  db.prepare('UPDATE pricing_records SET payload = ? WHERE id = ?').run(JSON.stringify(updated), input.id);
+  return updated;
+}
+
+export function createPricingRecord(input: CreatePricingInput) {
+  const db = SqliteRegistryStore.getDb();
+  const routeRow = db.prepare('SELECT payload FROM model_routes WHERE id = ?').get(input.modelRouteId) as { payload: string } | undefined;
+  if (!routeRow) throw new Error(`Route not found for pricing record: ${input.modelRouteId}`);
+
+  const route = JSON.parse(routeRow.payload) as ModelRoute;
+  const today = new Date().toISOString().slice(0, 10);
+  const pricingId = `price-${route.modelId}-${slugify(input.billingUnit)}-${Date.now()}`;
+
+  const pricing: PricingRecord = {
+    id: pricingId,
+    modelRouteId: input.modelRouteId,
+    currency: input.currency,
+    billingUnit: input.billingUnit,
+    inputPrice: input.inputPrice,
+    outputPrice: input.outputPrice,
+    cachedInputPrice: input.cachedInputPrice,
+    recordStatus: 'draft',
+    sourceUrl: '',
+    lastVerifiedAt: today,
+    notes: input.notes?.trim() || undefined,
+  };
+
+  db.prepare('INSERT INTO pricing_records (id, model_route_id, payload) VALUES (?, ?, ?)').run(pricing.id, pricing.modelRouteId, JSON.stringify(pricing));
+  return pricing;
 }
 
 export function updateModelRecord(input: UpdateModelInput) {
