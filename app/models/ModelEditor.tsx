@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useActionState, useMemo, useState } from 'react';
 import { useFormStatus } from 'react-dom';
 import {
   createIntegrationAction,
@@ -15,6 +15,7 @@ import {
   saveSuitabilityAction,
 } from './actions';
 import { importModelBundleAction } from './import-actions';
+import type { ImportModelBundleResult } from './import-actions';
 import type { ModelDetailRecord, ModelListRow } from '@/lib/registry/queries';
 
 interface Props {
@@ -39,7 +40,8 @@ const sampleImportPayload = `{
     "displayName": "GPT 5.4",
     "family": "gpt-5",
     "tier": "frontier",
-    "status": "active"
+    "status": "active",
+    "sourceUrl": "https://platform.openai.com/docs/models"
   },
   "capability": {
     "contextWindow": 200000,
@@ -50,7 +52,8 @@ const sampleImportPayload = `{
     "reasoningMode": true,
     "qualityClass": "frontier",
     "costClass": "high",
-    "latencyClass": "medium"
+    "latencyClass": "medium",
+    "sourceUrl": "https://platform.openai.com/docs/models"
   },
   "suitability": {
     "recommendedFor": ["coding", "agent orchestration"],
@@ -64,12 +67,14 @@ const sampleImportPayload = `{
       "supportsStreaming": true,
       "supportsStructuredOutput": true,
       "supportsReasoningMode": true,
+      "sourceUrl": "https://platform.openai.com/docs/api-reference",
       "pricing": [
         {
           "billingUnit": "per_1m_tokens",
           "currency": "USD",
           "inputPrice": 10,
-          "outputPrice": 30
+          "outputPrice": 30,
+          "sourceUrl": "https://openai.com/api/pricing"
         }
       ],
       "integrations": [
@@ -283,6 +288,7 @@ export function ModelEditor({ rows, details, providerOptions }: Props) {
   const [costFilter, setCostFilter] = useState('all');
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
+  const [importState, importAction] = useActionState<ImportModelBundleResult | null, FormData>(importModelBundleAction, null);
 
   const detailMap = useMemo(() => new Map(details.map((detail) => [detail.model.id, detail])), [details]);
   const selected = selectedModelId ? detailMap.get(selectedModelId) ?? null : null;
@@ -360,11 +366,28 @@ export function ModelEditor({ rows, details, providerOptions }: Props) {
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(10, 16, 30, 0.48)', display: 'flex', justifyContent: 'center', alignItems: 'center', padding: 24 }} onClick={() => setIsImportOpen(false)}>
           <div style={{ width: 'min(860px, 100%)', background: 'white', borderRadius: 18, padding: 24, boxShadow: '0 24px 80px rgba(0,0,0,0.25)' }} onClick={(event) => event.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}><h2 style={{ margin: 0 }}>Import model bundle</h2><button onClick={() => setIsImportOpen(false)} style={{ border: '1px solid var(--line)', background: 'white', borderRadius: 10, padding: '8px 12px', cursor: 'pointer' }}>Close</button></div>
-            <form action={importModelBundleAction} style={{ display: 'grid', gap: 16 }}>
+            <form action={importAction} style={{ display: 'grid', gap: 16 }}>
               <SectionTitle title="JSON bundle import" subtitle="Paste a canonical model bundle to create or update the model, routes, pricing, capability, suitability, and integrations deterministically." />
               <Field label="Payload"><TextArea name="payload" defaultValue={sampleImportPayload} rows={24} style={{ ...inputStyle, fontFamily: 'ui-monospace, monospace', fontSize: 13 }} /></Field>
+              {importState ? (
+                <div style={{ borderRadius: 12, padding: 12, background: importState.ok ? '#eefaf2' : '#fff1f1', border: `1px solid ${importState.ok ? '#b7e4c7' : '#f2b8b5'}`, color: importState.ok ? '#215c34' : '#8a1f17' }}>
+                  {importState.ok ? (
+                    <div style={{ display: 'grid', gap: 4 }}>
+                      <strong>Import complete</strong>
+                      <div>Model: {importState.summary?.providerId}/{importState.summary?.apiModelId}</div>
+                      <div>Routes: {importState.summary?.routeCount} · Pricing: {importState.summary?.pricingCount} · Integrations: {importState.summary?.integrationCount}</div>
+                      <div>Registry id: {importState.modelId}</div>
+                    </div>
+                  ) : (
+                    <div style={{ display: 'grid', gap: 4 }}>
+                      <strong>Import failed</strong>
+                      <div>{importState.error}</div>
+                    </div>
+                  )}
+                </div>
+              ) : null}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
-                <div style={{ fontSize: 12, color: 'var(--muted)' }}>Upsert identity is deterministic by provider + apiModelId, then route label, billing unit, and integration target.</div>
+                <div style={{ fontSize: 12, color: 'var(--muted)' }}>Validation now rejects duplicate route labels, duplicate pricing billing units per route, duplicate integration targets per route, invalid enums, and negative pricing.</div>
                 <SaveButton label="Import bundle" />
               </div>
             </form>
