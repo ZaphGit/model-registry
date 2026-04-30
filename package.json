@@ -9,7 +9,8 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "seed": "tsx scripts/seed-sqlite.ts",
-    "test:registry": "tsx scripts/test-registry.ts"
+    "test:registry": "tsx scripts/test-registry.ts",
+    "test:api": "tsx scripts/test-api-routes.ts"
   },
   "dependencies": {
     "ajv": "^8.17.1",
