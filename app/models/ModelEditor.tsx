@@ -14,6 +14,7 @@ import {
   saveRouteAction,
   saveSuitabilityAction,
 } from './actions';
+import { importModelBundleAction } from './import-actions';
 import type { ModelDetailRecord, ModelListRow } from '@/lib/registry/queries';
 
 interface Props {
@@ -30,6 +31,59 @@ const inputStyle = { padding: 10, borderRadius: 10, border: '1px solid var(--lin
 const sectionStyle = { display: 'grid', gap: 12, border: '1px solid var(--line)', borderRadius: 14, padding: 16 } as const;
 const nestedCardStyle = { display: 'grid', gap: 12, border: '1px solid #e6ebf5', borderRadius: 12, padding: 12, background: '#fafcff' } as const;
 const routeStackStyle = { display: 'grid', gap: 16, border: '1px solid #d9e4f2', borderRadius: 16, padding: 16, background: '#fcfdff' } as const;
+
+const sampleImportPayload = `{
+  "model": {
+    "providerId": "openai",
+    "apiModelId": "gpt-5.4",
+    "displayName": "GPT 5.4",
+    "family": "gpt-5",
+    "tier": "frontier",
+    "status": "active"
+  },
+  "capability": {
+    "contextWindow": 200000,
+    "maxOutputTokens": 32000,
+    "toolCalling": true,
+    "structuredOutput": true,
+    "streaming": true,
+    "reasoningMode": true,
+    "qualityClass": "frontier",
+    "costClass": "high",
+    "latencyClass": "medium"
+  },
+  "suitability": {
+    "recommendedFor": ["coding", "agent orchestration"],
+    "skillScores": { "coding": 0.96, "analysis": 0.92 }
+  },
+  "routes": [
+    {
+      "label": "OpenAI direct",
+      "routeType": "direct",
+      "supportsTools": true,
+      "supportsStreaming": true,
+      "supportsStructuredOutput": true,
+      "supportsReasoningMode": true,
+      "pricing": [
+        {
+          "billingUnit": "per_1m_tokens",
+          "currency": "USD",
+          "inputPrice": 10,
+          "outputPrice": 30
+        }
+      ],
+      "integrations": [
+        {
+          "integrationTarget": "openclaw",
+          "suggestedAlias": "GPT",
+          "providerModelString": "openai/gpt-5.4",
+          "requiredFields": ["apiKey"],
+          "supportsFallbackRole": true
+        }
+      ]
+    }
+  ]
+}`;
 
 function SaveButton({ label }: { label: string }) {
   const { pending } = useFormStatus();
@@ -228,6 +282,7 @@ export function ModelEditor({ rows, details, providerOptions }: Props) {
   const [contextFilter, setContextFilter] = useState('all');
   const [costFilter, setCostFilter] = useState('all');
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isImportOpen, setIsImportOpen] = useState(false);
 
   const detailMap = useMemo(() => new Map(details.map((detail) => [detail.model.id, detail])), [details]);
   const selected = selectedModelId ? detailMap.get(selectedModelId) ?? null : null;
@@ -255,10 +310,11 @@ export function ModelEditor({ rows, details, providerOptions }: Props) {
   return (
     <>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, marginBottom: 16 }}>
-        <div style={{ fontSize: 13, color: 'var(--muted)' }}>Main workbench: filter, inspect, edit, and now create model records from one screen.</div>
-        <button onClick={() => setIsCreateOpen(true)} style={{ background: 'var(--accent)', color: 'white', border: 0, borderRadius: 10, padding: '10px 14px', cursor: 'pointer' }}>
-          Add model
-        </button>
+        <div style={{ fontSize: 13, color: 'var(--muted)' }}>Main workbench: filter, inspect, edit, import, and create model records from one screen.</div>
+        <div style={{ display: 'flex', gap: 12 }}>
+          <button onClick={() => setIsImportOpen(true)} style={{ background: 'white', color: 'var(--accent)', border: '1px solid var(--accent)', borderRadius: 10, padding: '10px 14px', cursor: 'pointer' }}>Import bundle</button>
+          <button onClick={() => setIsCreateOpen(true)} style={{ background: 'var(--accent)', color: 'white', border: 0, borderRadius: 10, padding: '10px 14px', cursor: 'pointer' }}>Add model</button>
+        </div>
       </div>
 
       <div style={{ display: 'grid', gap: 16, marginBottom: 16, background: 'var(--panel)', border: '1px solid var(--line)', borderRadius: 16, padding: 16 }}>
@@ -299,6 +355,22 @@ export function ModelEditor({ rows, details, providerOptions }: Props) {
           </tbody>
         </table>
       </div>
+
+      {isImportOpen ? (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(10, 16, 30, 0.48)', display: 'flex', justifyContent: 'center', alignItems: 'center', padding: 24 }} onClick={() => setIsImportOpen(false)}>
+          <div style={{ width: 'min(860px, 100%)', background: 'white', borderRadius: 18, padding: 24, boxShadow: '0 24px 80px rgba(0,0,0,0.25)' }} onClick={(event) => event.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}><h2 style={{ margin: 0 }}>Import model bundle</h2><button onClick={() => setIsImportOpen(false)} style={{ border: '1px solid var(--line)', background: 'white', borderRadius: 10, padding: '8px 12px', cursor: 'pointer' }}>Close</button></div>
+            <form action={importModelBundleAction} style={{ display: 'grid', gap: 16 }}>
+              <SectionTitle title="JSON bundle import" subtitle="Paste a canonical model bundle to create or update the model, routes, pricing, capability, suitability, and integrations deterministically." />
+              <Field label="Payload"><TextArea name="payload" defaultValue={sampleImportPayload} rows={24} style={{ ...inputStyle, fontFamily: 'ui-monospace, monospace', fontSize: 13 }} /></Field>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+                <div style={{ fontSize: 12, color: 'var(--muted)' }}>Upsert identity is deterministic by provider + apiModelId, then route label, billing unit, and integration target.</div>
+                <SaveButton label="Import bundle" />
+              </div>
+            </form>
+          </div>
+        </div>
+      ) : null}
 
       {isCreateOpen ? (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(10, 16, 30, 0.48)', display: 'flex', justifyContent: 'center', alignItems: 'center', padding: 24 }} onClick={() => setIsCreateOpen(false)}>

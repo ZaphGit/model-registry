@@ -1,4 +1,5 @@
 import { SqliteRegistryStore } from './sqlite-store';
+import type { ModelBundleImport } from './import';
 import type { CapabilityProfile, IntegrationMetadata, Model, ModelRoute, PricingRecord, SuitabilityProfile } from './types';
 
 export interface UpdateModelInput {
@@ -115,9 +116,25 @@ function todayString() {
   return new Date().toISOString().slice(0, 10);
 }
 
+function modelIdFor(providerId: string, apiModelId: string) {
+  return `${providerId}-${slugify(apiModelId)}`;
+}
+
+function routeIdFor(modelId: string, label: string) {
+  return `route-${modelId}-${slugify(label)}`;
+}
+
+function pricingIdFor(routeId: string, billingUnit: PricingRecord['billingUnit']) {
+  return `price-${routeId}-${slugify(billingUnit)}`;
+}
+
+function integrationIdFor(modelId: string, integrationTarget: IntegrationMetadata['integrationTarget'], routeId: string) {
+  return `int-${modelId}-${slugify(routeId)}-${integrationTarget}`;
+}
+
 export function createModelRecord(input: CreateModelInput) {
   const db = SqliteRegistryStore.getDb();
-  const modelId = `${input.providerId}-${slugify(input.apiModelId)}`;
+  const modelId = modelIdFor(input.providerId, input.apiModelId);
   const routeId = `route-${modelId}-direct`;
   const suitabilityId = `suit-${modelId}`;
   const capabilityId = `cap-${modelId}`;
@@ -144,6 +161,210 @@ export function createModelRecord(input: CreateModelInput) {
 
   tx();
   return { model, route, suitability, capability, integration };
+}
+
+export function upsertModelBundle(bundle: ModelBundleImport) {
+  const db = SqliteRegistryStore.getDb();
+  const modelId = modelIdFor(bundle.model.providerId, bundle.model.apiModelId);
+  const today = todayString();
+
+  const tx = db.transaction(() => {
+    const existingModelRow = db.prepare('SELECT payload FROM models WHERE id = ?').get(modelId) as { payload: string } | undefined;
+    const model: Model = existingModelRow
+      ? {
+          ...(JSON.parse(existingModelRow.payload) as Model),
+          displayName: bundle.model.displayName,
+          family: bundle.model.family,
+          tier: bundle.model.tier,
+          status: bundle.model.status,
+          description: bundle.model.description,
+          notes: bundle.model.notes,
+          lastVerifiedAt: today,
+        }
+      : {
+          id: modelId,
+          providerId: bundle.model.providerId,
+          displayName: bundle.model.displayName,
+          apiModelId: bundle.model.apiModelId,
+          family: bundle.model.family,
+          tier: bundle.model.tier,
+          status: bundle.model.status,
+          releaseStage: 'active',
+          recordStatus: 'draft',
+          description: bundle.model.description,
+          notes: bundle.model.notes,
+          aliases: [],
+          sourceUrls: [],
+          lastVerifiedAt: today,
+        };
+
+    if (existingModelRow) {
+      db.prepare('UPDATE models SET payload = ? WHERE id = ?').run(JSON.stringify(model), modelId);
+    } else {
+      db.prepare('INSERT INTO models (id, provider_id, payload) VALUES (?, ?, ?)').run(model.id, model.providerId, JSON.stringify(model));
+    }
+
+    const capabilityId = `cap-${modelId}`;
+    const capabilityRow = db.prepare('SELECT payload FROM capability_profiles WHERE model_id = ? LIMIT 1').get(modelId) as { payload: string } | undefined;
+    const capability: CapabilityProfile = {
+      ...(capabilityRow ? (JSON.parse(capabilityRow.payload) as CapabilityProfile) : { id: capabilityId, modelId, recordStatus: 'draft', sourceUrl: '', lastVerifiedAt: today, modalities: { textIn: true, textOut: true }, features: {}, limits: {}, operationalClasses: {} }),
+      lastVerifiedAt: today,
+      notes: bundle.capability?.notes,
+      features: {
+        ...(capabilityRow ? (JSON.parse(capabilityRow.payload) as CapabilityProfile).features : {}),
+        toolCalling: bundle.capability?.toolCalling,
+        structuredOutput: bundle.capability?.structuredOutput,
+        streaming: bundle.capability?.streaming,
+        reasoningMode: bundle.capability?.reasoningMode,
+      },
+      limits: {
+        ...(capabilityRow ? (JSON.parse(capabilityRow.payload) as CapabilityProfile).limits : {}),
+        contextWindow: bundle.capability?.contextWindow,
+        maxOutputTokens: bundle.capability?.maxOutputTokens,
+      },
+      operationalClasses: {
+        ...(capabilityRow ? (JSON.parse(capabilityRow.payload) as CapabilityProfile).operationalClasses : {}),
+        qualityClass: bundle.capability?.qualityClass,
+        costClass: bundle.capability?.costClass,
+        latencyClass: bundle.capability?.latencyClass,
+      },
+    };
+
+    if (capabilityRow) {
+      db.prepare('UPDATE capability_profiles SET payload = ? WHERE model_id = ?').run(JSON.stringify(capability), modelId);
+    } else {
+      db.prepare('INSERT INTO capability_profiles (id, model_id, payload) VALUES (?, ?, ?)').run(capability.id, capability.modelId, JSON.stringify(capability));
+    }
+
+    const suitabilityId = `suit-${modelId}`;
+    const suitabilityRow = db.prepare('SELECT payload FROM suitability_profiles WHERE model_id = ? LIMIT 1').get(modelId) as { payload: string } | undefined;
+    const suitability: SuitabilityProfile = {
+      ...(suitabilityRow ? (JSON.parse(suitabilityRow.payload) as SuitabilityProfile) : { id: suitabilityId, modelId, recordStatus: 'draft', confidence: 0.5, lastReviewedAt: today, skillScores: {}, taskScores: {}, agentTypeScores: {}, recommendedFor: [], avoidFor: [] }),
+      strengthNotes: bundle.suitability?.strengthNotes,
+      weaknessNotes: bundle.suitability?.weaknessNotes,
+      recommendedFor: bundle.suitability?.recommendedFor ?? [],
+      avoidFor: bundle.suitability?.avoidFor ?? [],
+      skillScores: bundle.suitability?.skillScores ?? {},
+      taskScores: bundle.suitability?.taskScores ?? {},
+      agentTypeScores: bundle.suitability?.agentTypeScores ?? {},
+      lastReviewedAt: today,
+    };
+
+    if (suitabilityRow) {
+      db.prepare('UPDATE suitability_profiles SET payload = ? WHERE model_id = ?').run(JSON.stringify(suitability), modelId);
+    } else {
+      db.prepare('INSERT INTO suitability_profiles (id, model_id, payload) VALUES (?, ?, ?)').run(suitability.id, suitability.modelId, JSON.stringify(suitability));
+    }
+
+    for (const routeInput of bundle.routes) {
+      const routeId = routeIdFor(modelId, routeInput.label);
+      const routeRow = db.prepare('SELECT payload FROM model_routes WHERE id = ?').get(routeId) as { payload: string } | undefined;
+      const route: ModelRoute = routeRow
+        ? {
+            ...(JSON.parse(routeRow.payload) as ModelRoute),
+            label: routeInput.label,
+            routeType: routeInput.routeType,
+            baseUrl: routeInput.baseUrl,
+            supportsTools: routeInput.supportsTools,
+            supportsStreaming: routeInput.supportsStreaming,
+            supportsStructuredOutput: routeInput.supportsStructuredOutput,
+            supportsReasoningMode: routeInput.supportsReasoningMode,
+            lastVerifiedAt: today,
+          }
+        : {
+            id: routeId,
+            modelId,
+            providerId: bundle.model.providerId,
+            routeType: routeInput.routeType,
+            label: routeInput.label,
+            baseUrl: routeInput.baseUrl,
+            authMethod: 'api-key',
+            requiredSecrets: [],
+            supportsStreaming: routeInput.supportsStreaming,
+            supportsTools: routeInput.supportsTools,
+            supportsStructuredOutput: routeInput.supportsStructuredOutput,
+            supportsReasoningMode: routeInput.supportsReasoningMode,
+            status: 'active',
+            recordStatus: 'draft',
+            lastVerifiedAt: today,
+          };
+
+      if (routeRow) {
+        db.prepare('UPDATE model_routes SET payload = ? WHERE id = ?').run(JSON.stringify(route), routeId);
+      } else {
+        db.prepare('INSERT INTO model_routes (id, model_id, provider_id, payload) VALUES (?, ?, ?, ?)').run(route.id, route.modelId, route.providerId, JSON.stringify(route));
+      }
+
+      for (const pricingInput of routeInput.pricing ?? []) {
+        const pricingId = pricingIdFor(routeId, pricingInput.billingUnit);
+        const pricingRow = db.prepare('SELECT payload FROM pricing_records WHERE id = ?').get(pricingId) as { payload: string } | undefined;
+        const pricing: PricingRecord = pricingRow
+          ? {
+              ...(JSON.parse(pricingRow.payload) as PricingRecord),
+              currency: pricingInput.currency,
+              billingUnit: pricingInput.billingUnit,
+              inputPrice: pricingInput.inputPrice,
+              outputPrice: pricingInput.outputPrice,
+              cachedInputPrice: pricingInput.cachedInputPrice,
+              notes: pricingInput.notes,
+              lastVerifiedAt: today,
+            }
+          : {
+              id: pricingId,
+              modelRouteId: routeId,
+              currency: pricingInput.currency,
+              billingUnit: pricingInput.billingUnit,
+              inputPrice: pricingInput.inputPrice,
+              outputPrice: pricingInput.outputPrice,
+              cachedInputPrice: pricingInput.cachedInputPrice,
+              recordStatus: 'draft',
+              sourceUrl: '',
+              lastVerifiedAt: today,
+              notes: pricingInput.notes,
+            };
+
+        if (pricingRow) {
+          db.prepare('UPDATE pricing_records SET payload = ? WHERE id = ?').run(JSON.stringify(pricing), pricingId);
+        } else {
+          db.prepare('INSERT INTO pricing_records (id, model_route_id, payload) VALUES (?, ?, ?)').run(pricing.id, pricing.modelRouteId, JSON.stringify(pricing));
+        }
+      }
+
+      for (const integrationInput of routeInput.integrations ?? []) {
+        const integrationId = integrationIdFor(modelId, integrationInput.integrationTarget, routeId);
+        const integrationRow = db.prepare('SELECT payload FROM integration_metadata WHERE id = ?').get(integrationId) as { payload: string } | undefined;
+        const integration: IntegrationMetadata = integrationRow
+          ? {
+              ...(JSON.parse(integrationRow.payload) as IntegrationMetadata),
+              suggestedAlias: integrationInput.suggestedAlias,
+              providerModelString: integrationInput.providerModelString,
+              compatibilityNotes: integrationInput.compatibilityNotes,
+              requiredFields: integrationInput.requiredFields ?? [],
+              supportsFallbackRole: integrationInput.supportsFallbackRole,
+            }
+          : {
+              id: integrationId,
+              modelRouteId: routeId,
+              integrationTarget: integrationInput.integrationTarget,
+              suggestedAlias: integrationInput.suggestedAlias,
+              providerModelString: integrationInput.providerModelString,
+              compatibilityNotes: integrationInput.compatibilityNotes,
+              requiredFields: integrationInput.requiredFields ?? [],
+              supportsFallbackRole: integrationInput.supportsFallbackRole,
+              recordStatus: 'draft',
+            };
+
+        if (integrationRow) {
+          db.prepare('UPDATE integration_metadata SET payload = ? WHERE id = ?').run(JSON.stringify(integration), integrationId);
+        } else {
+          db.prepare('INSERT INTO integration_metadata (id, model_route_id, payload) VALUES (?, ?, ?)').run(integration.id, integration.modelRouteId, JSON.stringify(integration));
+        }
+      }
+    }
+  });
+
+  tx();
+  return { modelId };
 }
 
 export function createRouteRecord(input: CreateRouteInput) {
