@@ -26,6 +26,10 @@ const pricingUnits = ['per_1m_tokens', 'per_1k_tokens', 'per_image', 'per_second
 const routeTypes = ['direct', 'proxy', 'aggregator', 'internal'] as const;
 const integrationTargets = ['openclaw', 'nemoclaw', 'nanoclaw', 'other'] as const;
 
+const inputStyle = { padding: 10, borderRadius: 10, border: '1px solid var(--line)' } as const;
+const sectionStyle = { display: 'grid', gap: 12, border: '1px solid var(--line)', borderRadius: 14, padding: 16 } as const;
+const nestedCardStyle = { display: 'grid', gap: 12, border: '1px solid #e6ebf5', borderRadius: 12, padding: 12, background: '#fafcff' } as const;
+
 function SaveButton({ label }: { label: string }) {
   const { pending } = useFormStatus();
   return (
@@ -33,6 +37,36 @@ function SaveButton({ label }: { label: string }) {
       {pending ? 'Saving…' : label}
     </button>
   );
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <label style={{ display: 'grid', gap: 6 }}>
+      <span>{label}</span>
+      {children}
+    </label>
+  );
+}
+
+function BooleanSelect({ name, defaultValue }: { name: string; defaultValue: boolean | string }) {
+  return (
+    <select name={name} defaultValue={String(defaultValue)} style={inputStyle}>
+      <option value="true">true</option>
+      <option value="false">false</option>
+    </select>
+  );
+}
+
+function TextInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
+  return <input {...props} style={inputStyle} />;
+}
+
+function TextArea(props: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
+  return <textarea {...props} style={inputStyle} />;
+}
+
+function Select(props: React.SelectHTMLAttributes<HTMLSelectElement>) {
+  return <select {...props} style={inputStyle} />;
 }
 
 function money(value: number | null) {
@@ -106,71 +140,13 @@ export function ModelEditor({ rows, details, providerOptions }: Props) {
 
       <div style={{ display: 'grid', gap: 16, marginBottom: 16, background: 'var(--panel)', border: '1px solid var(--line)', borderRadius: 16, padding: 16 }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 12 }}>
-          <label style={{ display: 'grid', gap: 6 }}>
-            <span>Provider</span>
-            <select value={providerFilter} onChange={(event) => setProviderFilter(event.target.value)} style={{ padding: 10, borderRadius: 10, border: '1px solid var(--line)' }}>
-              <option value="all">all</option>
-              {providerOptions.map((option) => (
-                <option key={option.id} value={option.name}>
-                  {option.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label style={{ display: 'grid', gap: 6 }}>
-            <span>Integration target</span>
-            <select value={integrationFilter} onChange={(event) => setIntegrationFilter(event.target.value)} style={{ padding: 10, borderRadius: 10, border: '1px solid var(--line)' }}>
-              {integrationOptions.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label style={{ display: 'grid', gap: 6 }}>
-            <span>Skill / suitability keyword</span>
-            <input value={skillFilter} onChange={(event) => setSkillFilter(event.target.value)} placeholder="coding, multimodal, orchestrator…" style={{ padding: 10, borderRadius: 10, border: '1px solid var(--line)' }} />
-          </label>
-          <label style={{ display: 'grid', gap: 6 }}>
-            <span>Tools support</span>
-            <select value={toolsOnly ? 'yes' : 'all'} onChange={(event) => setToolsOnly(event.target.value === 'yes')} style={{ padding: 10, borderRadius: 10, border: '1px solid var(--line)' }}>
-              <option value="all">all</option>
-              <option value="yes">tools only</option>
-            </select>
-          </label>
-          <label style={{ display: 'grid', gap: 6 }}>
-            <span>Quality class</span>
-            <select value={qualityFilter} onChange={(event) => setQualityFilter(event.target.value)} style={{ padding: 10, borderRadius: 10, border: '1px solid var(--line)' }}>
-              <option value="all">all</option>
-              {['low', 'medium', 'high', 'frontier', 'unknown'].map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label style={{ display: 'grid', gap: 6 }}>
-            <span>Context size</span>
-            <select value={contextFilter} onChange={(event) => setContextFilter(event.target.value)} style={{ padding: 10, borderRadius: 10, border: '1px solid var(--line)' }}>
-              <option value="all">all</option>
-              {['small', 'medium', 'large', 'xl', 'unknown'].map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label style={{ display: 'grid', gap: 6 }}>
-            <span>Cost band</span>
-            <select value={costFilter} onChange={(event) => setCostFilter(event.target.value)} style={{ padding: 10, borderRadius: 10, border: '1px solid var(--line)' }}>
-              <option value="all">all</option>
-              {['low', 'medium', 'high', 'unknown'].map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
-          </label>
+          <Field label="Provider"><Select value={providerFilter} onChange={(event) => setProviderFilter(event.target.value)}><option value="all">all</option>{providerOptions.map((option) => <option key={option.id} value={option.name}>{option.name}</option>)}</Select></Field>
+          <Field label="Integration target"><Select value={integrationFilter} onChange={(event) => setIntegrationFilter(event.target.value)}>{integrationOptions.map((option) => <option key={option} value={option}>{option}</option>)}</Select></Field>
+          <Field label="Skill / suitability keyword"><TextInput value={skillFilter} onChange={(event) => setSkillFilter(event.target.value)} placeholder="coding, multimodal, orchestrator…" /></Field>
+          <Field label="Tools support"><Select value={toolsOnly ? 'yes' : 'all'} onChange={(event) => setToolsOnly(event.target.value === 'yes')}><option value="all">all</option><option value="yes">tools only</option></Select></Field>
+          <Field label="Quality class"><Select value={qualityFilter} onChange={(event) => setQualityFilter(event.target.value)}><option value="all">all</option>{['low', 'medium', 'high', 'frontier', 'unknown'].map((option) => <option key={option} value={option}>{option}</option>)}</Select></Field>
+          <Field label="Context size"><Select value={contextFilter} onChange={(event) => setContextFilter(event.target.value)}><option value="all">all</option>{['small', 'medium', 'large', 'xl', 'unknown'].map((option) => <option key={option} value={option}>{option}</option>)}</Select></Field>
+          <Field label="Cost band"><Select value={costFilter} onChange={(event) => setCostFilter(event.target.value)}><option value="all">all</option>{['low', 'medium', 'high', 'unknown'].map((option) => <option key={option} value={option}>{option}</option>)}</Select></Field>
         </div>
         <div style={{ fontSize: 13, color: 'var(--muted)' }}>{filteredRows.length} model rows match current filters.</div>
       </div>
@@ -179,27 +155,17 @@ export function ModelEditor({ rows, details, providerOptions }: Props) {
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead style={{ background: '#f0f4fb', textAlign: 'left' }}>
             <tr>
-              {['Model', 'Provider', 'Family', 'Tier', 'Route', 'Input', 'Output', 'Context', 'Tools', 'Quality'].map((label) => (
-                <th key={label} style={{ padding: '14px 16px', fontSize: 13, borderBottom: '1px solid var(--line)' }}>
-                  {label}
-                </th>
-              ))}
+              {['Model', 'Provider', 'Family', 'Tier', 'Route', 'Input', 'Output', 'Context', 'Tools', 'Quality'].map((label) => <th key={label} style={{ padding: '14px 16px', fontSize: 13, borderBottom: '1px solid var(--line)' }}>{label}</th>)}
             </tr>
           </thead>
           <tbody>
             {filteredRows.map((row) => (
               <tr key={row.modelId} onClick={() => { setSelectedModelId(row.modelId); setIsOpen(true); }} style={{ cursor: 'pointer' }}>
-                <td style={{ padding: '14px 16px', borderBottom: '1px solid var(--line)' }}>
-                  <div style={{ fontWeight: 600 }}>{row.displayName}</div>
-                  <div style={{ fontSize: 12, color: 'var(--muted)' }}>{row.status}</div>
-                </td>
+                <td style={{ padding: '14px 16px', borderBottom: '1px solid var(--line)' }}><div style={{ fontWeight: 600 }}>{row.displayName}</div><div style={{ fontSize: 12, color: 'var(--muted)' }}>{row.status}</div></td>
                 <td style={{ padding: '14px 16px', borderBottom: '1px solid var(--line)' }}>{row.providerName}</td>
                 <td style={{ padding: '14px 16px', borderBottom: '1px solid var(--line)' }}>{row.family}</td>
                 <td style={{ padding: '14px 16px', borderBottom: '1px solid var(--line)' }}>{row.tier}</td>
-                <td style={{ padding: '14px 16px', borderBottom: '1px solid var(--line)' }}>
-                  <div>{row.routeLabel ?? '—'}</div>
-                  <div style={{ fontSize: 12, color: 'var(--muted)' }}>{row.routeType ?? '—'}</div>
-                </td>
+                <td style={{ padding: '14px 16px', borderBottom: '1px solid var(--line)' }}><div>{row.routeLabel ?? '—'}</div><div style={{ fontSize: 12, color: 'var(--muted)' }}>{row.routeType ?? '—'}</div></td>
                 <td style={{ padding: '14px 16px', borderBottom: '1px solid var(--line)' }}>{money(row.inputPrice)}</td>
                 <td style={{ padding: '14px 16px', borderBottom: '1px solid var(--line)' }}>{money(row.outputPrice)}</td>
                 <td style={{ padding: '14px 16px', borderBottom: '1px solid var(--line)' }}>{row.contextWindow?.toLocaleString() ?? '—'}</td>
@@ -214,19 +180,16 @@ export function ModelEditor({ rows, details, providerOptions }: Props) {
       {isCreateOpen ? (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(10, 16, 30, 0.48)', display: 'flex', justifyContent: 'center', alignItems: 'center', padding: 24 }} onClick={() => setIsCreateOpen(false)}>
           <div style={{ width: 'min(720px, 100%)', background: 'white', borderRadius: 18, padding: 24, boxShadow: '0 24px 80px rgba(0,0,0,0.25)' }} onClick={(event) => event.stopPropagation()}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
-              <h2 style={{ margin: 0 }}>Add model</h2>
-              <button onClick={() => setIsCreateOpen(false)} style={{ border: '1px solid var(--line)', background: 'white', borderRadius: 10, padding: '8px 12px', cursor: 'pointer' }}>Close</button>
-            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}><h2 style={{ margin: 0 }}>Add model</h2><button onClick={() => setIsCreateOpen(false)} style={{ border: '1px solid var(--line)', background: 'white', borderRadius: 10, padding: '8px 12px', cursor: 'pointer' }}>Close</button></div>
             <form action={createModelAction} style={{ display: 'grid', gap: 16 }}>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 16 }}>
-                <label style={{ display: 'grid', gap: 6 }}><span>Provider</span><select name="providerId" defaultValue={providerOptions[0]?.id} style={{ padding: 10, borderRadius: 10, border: '1px solid var(--line)' }}>{providerOptions.map((option) => <option key={option.id} value={option.id}>{option.name}</option>)}</select></label>
-                <label style={{ display: 'grid', gap: 6 }}><span>Integration target</span><select name="integrationTarget" defaultValue="openclaw" style={{ padding: 10, borderRadius: 10, border: '1px solid var(--line)' }}>{integrationTargets.map((option) => <option key={option} value={option}>{option}</option>)}</select></label>
-                <label style={{ display: 'grid', gap: 6 }}><span>Display name</span><input name="displayName" style={{ padding: 10, borderRadius: 10, border: '1px solid var(--line)' }} /></label>
-                <label style={{ display: 'grid', gap: 6 }}><span>API model id</span><input name="apiModelId" style={{ padding: 10, borderRadius: 10, border: '1px solid var(--line)' }} /></label>
-                <label style={{ display: 'grid', gap: 6 }}><span>Family</span><input name="family" style={{ padding: 10, borderRadius: 10, border: '1px solid var(--line)' }} /></label>
-                <label style={{ display: 'grid', gap: 6 }}><span>Tier</span><input name="tier" defaultValue="standard" style={{ padding: 10, borderRadius: 10, border: '1px solid var(--line)' }} /></label>
-                <label style={{ display: 'grid', gap: 6 }}><span>Status</span><select name="status" defaultValue="active" style={{ padding: 10, borderRadius: 10, border: '1px solid var(--line)' }}>{['active', 'preview', 'deprecated', 'experimental', 'disabled'].map((option) => <option key={option} value={option}>{option}</option>)}</select></label>
+                <Field label="Provider"><Select name="providerId" defaultValue={providerOptions[0]?.id}>{providerOptions.map((option) => <option key={option.id} value={option.id}>{option.name}</option>)}</Select></Field>
+                <Field label="Integration target"><Select name="integrationTarget" defaultValue="openclaw">{integrationTargets.map((option) => <option key={option} value={option}>{option}</option>)}</Select></Field>
+                <Field label="Display name"><TextInput name="displayName" /></Field>
+                <Field label="API model id"><TextInput name="apiModelId" /></Field>
+                <Field label="Family"><TextInput name="family" /></Field>
+                <Field label="Tier"><TextInput name="tier" defaultValue="standard" /></Field>
+                <Field label="Status"><Select name="status" defaultValue="active">{['active', 'preview', 'deprecated', 'experimental', 'disabled'].map((option) => <option key={option} value={option}>{option}</option>)}</Select></Field>
               </div>
               <div style={{ display: 'flex', justifyContent: 'flex-end' }}><SaveButton label="Create model" /></div>
             </form>
@@ -238,10 +201,7 @@ export function ModelEditor({ rows, details, providerOptions }: Props) {
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(10, 16, 30, 0.48)', display: 'flex', justifyContent: 'center', alignItems: 'center', padding: 24 }} onClick={() => setIsOpen(false)}>
           <div style={{ width: 'min(1080px, 100%)', maxHeight: '90vh', overflow: 'auto', background: 'white', borderRadius: 18, padding: 24, boxShadow: '0 24px 80px rgba(0,0,0,0.25)' }} onClick={(event) => event.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, alignItems: 'start', marginBottom: 20 }}>
-              <div>
-                <h2 style={{ margin: '0 0 8px 0' }}>{selected.model.displayName}</h2>
-                <div style={{ color: 'var(--muted)', fontSize: 14 }}>{selected.provider?.name ?? 'Unknown provider'} · {selected.model.apiModelId}</div>
-              </div>
+              <div><h2 style={{ margin: '0 0 8px 0' }}>{selected.model.displayName}</h2><div style={{ color: 'var(--muted)', fontSize: 14 }}>{selected.provider?.name ?? 'Unknown provider'} · {selected.model.apiModelId}</div></div>
               <button onClick={() => setIsOpen(false)} style={{ border: '1px solid var(--line)', background: 'white', borderRadius: 10, padding: '8px 12px', cursor: 'pointer' }}>Close</button>
             </div>
 
@@ -250,31 +210,27 @@ export function ModelEditor({ rows, details, providerOptions }: Props) {
                 <input type="hidden" name="id" value={selected.model.id} />
                 <h3 style={{ margin: 0 }}>Model</h3>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 16 }}>
-                  <label style={{ display: 'grid', gap: 6 }}><span>Display name</span><input name="displayName" defaultValue={selected.model.displayName} style={{ padding: 10, borderRadius: 10, border: '1px solid var(--line)' }} /></label>
-                  <label style={{ display: 'grid', gap: 6 }}><span>Family</span><input name="family" defaultValue={selected.model.family} style={{ padding: 10, borderRadius: 10, border: '1px solid var(--line)' }} /></label>
-                  <label style={{ display: 'grid', gap: 6 }}><span>Tier</span><input name="tier" defaultValue={selected.model.tier} style={{ padding: 10, borderRadius: 10, border: '1px solid var(--line)' }} /></label>
-                  <label style={{ display: 'grid', gap: 6 }}><span>Status</span><select name="status" defaultValue={selected.model.status} style={{ padding: 10, borderRadius: 10, border: '1px solid var(--line)' }}>{['active', 'preview', 'deprecated', 'experimental', 'disabled'].map((option) => <option key={option} value={option}>{option}</option>)}</select></label>
+                  <Field label="Display name"><TextInput name="displayName" defaultValue={selected.model.displayName} /></Field>
+                  <Field label="Family"><TextInput name="family" defaultValue={selected.model.family} /></Field>
+                  <Field label="Tier"><TextInput name="tier" defaultValue={selected.model.tier} /></Field>
+                  <Field label="Status"><Select name="status" defaultValue={selected.model.status}>{['active', 'preview', 'deprecated', 'experimental', 'disabled'].map((option) => <option key={option} value={option}>{option}</option>)}</Select></Field>
                 </div>
-                <label style={{ display: 'grid', gap: 6 }}><span>Description</span><textarea name="description" defaultValue={selected.model.description ?? ''} rows={3} style={{ padding: 10, borderRadius: 10, border: '1px solid var(--line)' }} /></label>
-                <label style={{ display: 'grid', gap: 6 }}><span>Notes</span><textarea name="notes" defaultValue={selected.model.notes ?? ''} rows={3} style={{ padding: 10, borderRadius: 10, border: '1px solid var(--line)' }} /></label>
+                <Field label="Description"><TextArea name="description" defaultValue={selected.model.description ?? ''} rows={3} /></Field>
+                <Field label="Notes"><TextArea name="notes" defaultValue={selected.model.notes ?? ''} rows={3} /></Field>
                 <div style={{ display: 'flex', justifyContent: 'flex-end' }}><SaveButton label="Save model" /></div>
               </form>
 
-              <section style={{ display: 'grid', gap: 12, border: '1px solid var(--line)', borderRadius: 14, padding: 16 }}>
+              <section style={sectionStyle}>
                 <h3 style={{ margin: 0 }}>Add route</h3>
                 <form action={createRouteAction} style={{ display: 'grid', gap: 12 }}>
                   <input type="hidden" name="modelId" value={selected.model.id} />
                   <input type="hidden" name="providerId" value={selected.model.providerId} />
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 12 }}>
-                    <label style={{ display: 'grid', gap: 6 }}><span>Label</span><input name="label" style={{ padding: 10, borderRadius: 10, border: '1px solid var(--line)' }} /></label>
-                    <label style={{ display: 'grid', gap: 6 }}><span>Base URL</span><input name="baseUrl" style={{ padding: 10, borderRadius: 10, border: '1px solid var(--line)' }} /></label>
-                    <label style={{ display: 'grid', gap: 6 }}><span>Route type</span><select name="routeType" defaultValue="direct" style={{ padding: 10, borderRadius: 10, border: '1px solid var(--line)' }}>{routeTypes.map((option) => <option key={option} value={option}>{option}</option>)}</select></label>
+                    <Field label="Label"><TextInput name="label" /></Field>
+                    <Field label="Base URL"><TextInput name="baseUrl" /></Field>
+                    <Field label="Route type"><Select name="routeType" defaultValue="direct">{routeTypes.map((option) => <option key={option} value={option}>{option}</option>)}</Select></Field>
                   </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 12 }}>
-                    {['supportsTools', 'supportsStreaming', 'supportsStructuredOutput', 'supportsReasoningMode'].map((name) => (
-                      <label key={name} style={{ display: 'grid', gap: 6 }}><span>{name}</span><select name={name} defaultValue="true" style={{ padding: 10, borderRadius: 10, border: '1px solid var(--line)' }}><option value="true">true</option><option value="false">false</option></select></label>
-                    ))}
-                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 12 }}>{['supportsTools', 'supportsStreaming', 'supportsStructuredOutput', 'supportsReasoningMode'].map((name) => <Field key={name} label={name}><BooleanSelect name={name} defaultValue="true" /></Field>)}</div>
                   <div style={{ display: 'flex', justifyContent: 'flex-end' }}><SaveButton label="Add route" /></div>
                 </form>
               </section>
@@ -294,67 +250,60 @@ export function ModelEditor({ rows, details, providerOptions }: Props) {
 
                   return (
                     <div key={route.id} style={{ display: 'grid', gap: 16 }}>
-                      <form action={saveRouteAction} style={{ display: 'grid', gap: 12, border: '1px solid var(--line)', borderRadius: 14, padding: 16 }}>
+                      <form action={saveRouteAction} style={sectionStyle}>
                         <input type="hidden" name="id" value={route.id} />
                         <h3 style={{ marginTop: 0 }}>Route</h3>
-                        <label style={{ display: 'grid', gap: 6 }}><span>Label</span><input name="label" defaultValue={route.label} style={{ padding: 10, borderRadius: 10, border: '1px solid var(--line)' }} /></label>
-                        <label style={{ display: 'grid', gap: 6 }}><span>Base URL</span><input name="baseUrl" defaultValue={route.baseUrl ?? ''} style={{ padding: 10, borderRadius: 10, border: '1px solid var(--line)' }} /></label>
-                        <label style={{ display: 'grid', gap: 6 }}><span>Route type</span><select name="routeType" defaultValue={route.routeType} style={{ padding: 10, borderRadius: 10, border: '1px solid var(--line)' }}>{routeTypes.map((option) => <option key={option} value={option}>{option}</option>)}</select></label>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 12 }}>
-                          {routeBooleanFields.map((field) => (
-                            <label key={field.name} style={{ display: 'grid', gap: 6 }}><span>{field.name}</span><select name={field.name} defaultValue={String(field.value)} style={{ padding: 10, borderRadius: 10, border: '1px solid var(--line)' }}><option value="true">true</option><option value="false">false</option></select></label>
-                          ))}
-                        </div>
+                        <Field label="Label"><TextInput name="label" defaultValue={route.label} /></Field>
+                        <Field label="Base URL"><TextInput name="baseUrl" defaultValue={route.baseUrl ?? ''} /></Field>
+                        <Field label="Route type"><Select name="routeType" defaultValue={route.routeType}>{routeTypes.map((option) => <option key={option} value={option}>{option}</option>)}</Select></Field>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 12 }}>{routeBooleanFields.map((field) => <Field key={field.name} label={field.name}><BooleanSelect name={field.name} defaultValue={field.value} /></Field>)}</div>
                         <div style={{ display: 'flex', justifyContent: 'flex-end' }}><SaveButton label="Save route" /></div>
                       </form>
 
-                      <section style={{ display: 'grid', gap: 12, border: '1px solid var(--line)', borderRadius: 14, padding: 16 }}>
+                      <section style={sectionStyle}>
                         <h3 style={{ margin: 0 }}>Pricing</h3>
                         {routePricing.map((pricing) => (
-                          <form key={pricing.id} action={savePricingAction} style={{ display: 'grid', gap: 12, border: '1px solid #e6ebf5', borderRadius: 12, padding: 12, background: '#fafcff' }}>
+                          <form key={pricing.id} action={savePricingAction} style={nestedCardStyle}>
                             <input type="hidden" name="id" value={pricing.id} />
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 12 }}>
-                              <label style={{ display: 'grid', gap: 6 }}><span>Billing unit</span><select name="billingUnit" defaultValue={pricing.billingUnit} style={{ padding: 10, borderRadius: 10, border: '1px solid var(--line)' }}>{pricingUnits.map((option) => <option key={option} value={option}>{option}</option>)}</select></label>
-                              <label style={{ display: 'grid', gap: 6 }}><span>Currency</span><input name="currency" defaultValue={pricing.currency} style={{ padding: 10, borderRadius: 10, border: '1px solid var(--line)' }} /></label>
-                              <label style={{ display: 'grid', gap: 6 }}><span>Input price</span><input name="inputPrice" defaultValue={pricing.inputPrice} style={{ padding: 10, borderRadius: 10, border: '1px solid var(--line)' }} /></label>
-                              <label style={{ display: 'grid', gap: 6 }}><span>Output price</span><input name="outputPrice" defaultValue={pricing.outputPrice} style={{ padding: 10, borderRadius: 10, border: '1px solid var(--line)' }} /></label>
-                              <label style={{ display: 'grid', gap: 6 }}><span>Cached input price</span><input name="cachedInputPrice" defaultValue={pricing.cachedInputPrice ?? ''} style={{ padding: 10, borderRadius: 10, border: '1px solid var(--line)' }} /></label>
+                              <Field label="Billing unit"><Select name="billingUnit" defaultValue={pricing.billingUnit}>{pricingUnits.map((option) => <option key={option} value={option}>{option}</option>)}</Select></Field>
+                              <Field label="Currency"><TextInput name="currency" defaultValue={pricing.currency} /></Field>
+                              <Field label="Input price"><TextInput name="inputPrice" defaultValue={pricing.inputPrice} /></Field>
+                              <Field label="Output price"><TextInput name="outputPrice" defaultValue={pricing.outputPrice} /></Field>
+                              <Field label="Cached input price"><TextInput name="cachedInputPrice" defaultValue={pricing.cachedInputPrice ?? ''} /></Field>
                             </div>
-                            <label style={{ display: 'grid', gap: 6 }}><span>Notes</span><textarea name="notes" defaultValue={pricing.notes ?? ''} rows={2} style={{ padding: 10, borderRadius: 10, border: '1px solid var(--line)' }} /></label>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
-                              <div style={{ fontSize: 12, color: 'var(--muted)' }}>{money(pricing.inputPrice)} in / {money(pricing.outputPrice)} out</div>
-                              <SaveButton label="Save pricing" />
-                            </div>
+                            <Field label="Notes"><TextArea name="notes" defaultValue={pricing.notes ?? ''} rows={2} /></Field>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}><div style={{ fontSize: 12, color: 'var(--muted)' }}>{money(pricing.inputPrice)} in / {money(pricing.outputPrice)} out</div><SaveButton label="Save pricing" /></div>
                           </form>
                         ))}
                         <form action={createPricingAction} style={{ display: 'grid', gap: 12, borderTop: '1px solid var(--line)', paddingTop: 12 }}>
                           <input type="hidden" name="modelRouteId" value={route.id} />
                           <div style={{ fontWeight: 600 }}>Add pricing record</div>
                           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 12 }}>
-                            <label style={{ display: 'grid', gap: 6 }}><span>Billing unit</span><select name="billingUnit" defaultValue="per_1m_tokens" style={{ padding: 10, borderRadius: 10, border: '1px solid var(--line)' }}>{pricingUnits.map((option) => <option key={option} value={option}>{option}</option>)}</select></label>
-                            <label style={{ display: 'grid', gap: 6 }}><span>Currency</span><input name="currency" defaultValue="USD" style={{ padding: 10, borderRadius: 10, border: '1px solid var(--line)' }} /></label>
-                            <label style={{ display: 'grid', gap: 6 }}><span>Input price</span><input name="inputPrice" style={{ padding: 10, borderRadius: 10, border: '1px solid var(--line)' }} /></label>
-                            <label style={{ display: 'grid', gap: 6 }}><span>Output price</span><input name="outputPrice" style={{ padding: 10, borderRadius: 10, border: '1px solid var(--line)' }} /></label>
-                            <label style={{ display: 'grid', gap: 6 }}><span>Cached input price</span><input name="cachedInputPrice" style={{ padding: 10, borderRadius: 10, border: '1px solid var(--line)' }} /></label>
+                            <Field label="Billing unit"><Select name="billingUnit" defaultValue="per_1m_tokens">{pricingUnits.map((option) => <option key={option} value={option}>{option}</option>)}</Select></Field>
+                            <Field label="Currency"><TextInput name="currency" defaultValue="USD" /></Field>
+                            <Field label="Input price"><TextInput name="inputPrice" /></Field>
+                            <Field label="Output price"><TextInput name="outputPrice" /></Field>
+                            <Field label="Cached input price"><TextInput name="cachedInputPrice" /></Field>
                           </div>
-                          <label style={{ display: 'grid', gap: 6 }}><span>Notes</span><textarea name="notes" rows={2} style={{ padding: 10, borderRadius: 10, border: '1px solid var(--line)' }} /></label>
+                          <Field label="Notes"><TextArea name="notes" rows={2} /></Field>
                           <div style={{ display: 'flex', justifyContent: 'flex-end' }}><SaveButton label="Add pricing" /></div>
                         </form>
                       </section>
 
-                      <section style={{ display: 'grid', gap: 12, border: '1px solid var(--line)', borderRadius: 14, padding: 16 }}>
+                      <section style={sectionStyle}>
                         <h3 style={{ margin: 0 }}>Integrations</h3>
                         {routeIntegrations.map((metadata) => (
-                          <form key={metadata.id} action={saveIntegrationAction} style={{ display: 'grid', gap: 16, border: '1px solid #e6ebf5', borderRadius: 12, padding: 12, background: '#fafcff' }}>
+                          <form key={metadata.id} action={saveIntegrationAction} style={nestedCardStyle}>
                             <input type="hidden" name="id" value={metadata.id} />
                             <div style={{ fontWeight: 600 }}>{metadata.integrationTarget}</div>
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 16 }}>
-                              <label style={{ display: 'grid', gap: 6 }}><span>Suggested alias</span><input name="suggestedAlias" defaultValue={metadata.suggestedAlias ?? ''} style={{ padding: 10, borderRadius: 10, border: '1px solid var(--line)' }} /></label>
-                              <label style={{ display: 'grid', gap: 6 }}><span>Provider model string</span><input name="providerModelString" defaultValue={metadata.providerModelString ?? ''} style={{ padding: 10, borderRadius: 10, border: '1px solid var(--line)' }} /></label>
-                              <label style={{ display: 'grid', gap: 6 }}><span>Required fields (comma-separated)</span><input name="requiredFields" defaultValue={metadata.requiredFields?.join(', ') ?? ''} style={{ padding: 10, borderRadius: 10, border: '1px solid var(--line)' }} /></label>
-                              <label style={{ display: 'grid', gap: 6 }}><span>Supports fallback role</span><select name="supportsFallbackRole" defaultValue={String(Boolean(metadata.supportsFallbackRole))} style={{ padding: 10, borderRadius: 10, border: '1px solid var(--line)' }}><option value="true">true</option><option value="false">false</option></select></label>
+                              <Field label="Suggested alias"><TextInput name="suggestedAlias" defaultValue={metadata.suggestedAlias ?? ''} /></Field>
+                              <Field label="Provider model string"><TextInput name="providerModelString" defaultValue={metadata.providerModelString ?? ''} /></Field>
+                              <Field label="Required fields (comma-separated)"><TextInput name="requiredFields" defaultValue={metadata.requiredFields?.join(', ') ?? ''} /></Field>
+                              <Field label="Supports fallback role"><BooleanSelect name="supportsFallbackRole" defaultValue={Boolean(metadata.supportsFallbackRole)} /></Field>
                             </div>
-                            <label style={{ display: 'grid', gap: 6 }}><span>Compatibility notes</span><textarea name="compatibilityNotes" defaultValue={metadata.compatibilityNotes ?? ''} rows={3} style={{ padding: 10, borderRadius: 10, border: '1px solid var(--line)' }} /></label>
+                            <Field label="Compatibility notes"><TextArea name="compatibilityNotes" defaultValue={metadata.compatibilityNotes ?? ''} rows={3} /></Field>
                             <div style={{ display: 'flex', justifyContent: 'flex-end' }}><SaveButton label={`Save ${metadata.integrationTarget}`} /></div>
                           </form>
                         ))}
@@ -363,19 +312,17 @@ export function ModelEditor({ rows, details, providerOptions }: Props) {
                             <input type="hidden" name="modelRouteId" value={route.id} />
                             <div style={{ fontWeight: 600 }}>Add integration</div>
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 12 }}>
-                              <label style={{ display: 'grid', gap: 6 }}><span>Target</span><select name="integrationTarget" defaultValue={availableTargets[0]} style={{ padding: 10, borderRadius: 10, border: '1px solid var(--line)' }}>{availableTargets.map((option) => <option key={option} value={option}>{option}</option>)}</select></label>
-                              <label style={{ display: 'grid', gap: 6 }}><span>Suggested alias</span><input name="suggestedAlias" style={{ padding: 10, borderRadius: 10, border: '1px solid var(--line)' }} /></label>
-                              <label style={{ display: 'grid', gap: 6 }}><span>Provider model string</span><input name="providerModelString" style={{ padding: 10, borderRadius: 10, border: '1px solid var(--line)' }} /></label>
-                              <label style={{ display: 'grid', gap: 6 }}><span>Required fields (comma-separated)</span><input name="requiredFields" defaultValue="apiKey" style={{ padding: 10, borderRadius: 10, border: '1px solid var(--line)' }} /></label>
-                              <label style={{ display: 'grid', gap: 6 }}><span>Supports fallback role</span><select name="supportsFallbackRole" defaultValue="true" style={{ padding: 10, borderRadius: 10, border: '1px solid var(--line)' }}><option value="true">true</option><option value="false">false</option></select></label>
+                              <Field label="Target"><Select name="integrationTarget" defaultValue={availableTargets[0]}>{availableTargets.map((option) => <option key={option} value={option}>{option}</option>)}</Select></Field>
+                              <Field label="Suggested alias"><TextInput name="suggestedAlias" /></Field>
+                              <Field label="Provider model string"><TextInput name="providerModelString" /></Field>
+                              <Field label="Required fields (comma-separated)"><TextInput name="requiredFields" defaultValue="apiKey" /></Field>
+                              <Field label="Supports fallback role"><BooleanSelect name="supportsFallbackRole" defaultValue="true" /></Field>
                             </div>
-                            <label style={{ display: 'grid', gap: 6 }}><span>Compatibility notes</span><textarea name="compatibilityNotes" rows={2} style={{ padding: 10, borderRadius: 10, border: '1px solid var(--line)' }} /></label>
+                            <Field label="Compatibility notes"><TextArea name="compatibilityNotes" rows={2} /></Field>
                             <div style={{ display: 'flex', justifyContent: 'flex-end' }}><SaveButton label="Add integration" /></div>
                           </form>
                         ) : (
-                          <div style={{ borderTop: '1px solid var(--line)', paddingTop: 12, fontSize: 13, color: 'var(--muted)' }}>
-                            All integration targets already exist for this route.
-                          </div>
+                          <div style={{ borderTop: '1px solid var(--line)', paddingTop: 12, fontSize: 13, color: 'var(--muted)' }}>All integration targets already exist for this route.</div>
                         )}
                       </section>
                     </div>
@@ -387,22 +334,13 @@ export function ModelEditor({ rows, details, providerOptions }: Props) {
                 <input type="hidden" name="modelId" value={selected.model.id} />
                 <h3 style={{ margin: 0 }}>Capabilities</h3>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 16 }}>
-                  <label style={{ display: 'grid', gap: 6 }}><span>Context window</span><input name="contextWindow" defaultValue={selected.capabilityProfile?.limits?.contextWindow ?? ''} style={{ padding: 10, borderRadius: 10, border: '1px solid var(--line)' }} /></label>
-                  <label style={{ display: 'grid', gap: 6 }}><span>Max output tokens</span><input name="maxOutputTokens" defaultValue={selected.capabilityProfile?.limits?.maxOutputTokens ?? ''} style={{ padding: 10, borderRadius: 10, border: '1px solid var(--line)' }} /></label>
-                  <label style={{ display: 'grid', gap: 6 }}><span>Quality class</span><select name="qualityClass" defaultValue={selected.capabilityProfile?.operationalClasses?.qualityClass ?? ''} style={{ padding: 10, borderRadius: 10, border: '1px solid var(--line)' }}><option value="">—</option>{['low', 'medium', 'high', 'frontier'].map((option) => <option key={option} value={option}>{option}</option>)}</select></label>
-                  <label style={{ display: 'grid', gap: 6 }}><span>Cost class</span><select name="costClass" defaultValue={selected.capabilityProfile?.operationalClasses?.costClass ?? ''} style={{ padding: 10, borderRadius: 10, border: '1px solid var(--line)' }}><option value="">—</option>{['low', 'medium', 'high'].map((option) => <option key={option} value={option}>{option}</option>)}</select></label>
-                  <label style={{ display: 'grid', gap: 6 }}><span>Latency class</span><select name="latencyClass" defaultValue={selected.capabilityProfile?.operationalClasses?.latencyClass ?? ''} style={{ padding: 10, borderRadius: 10, border: '1px solid var(--line)' }}><option value="">—</option>{['low', 'medium', 'high'].map((option) => <option key={option} value={option}>{option}</option>)}</select></label>
+                  <Field label="Context window"><TextInput name="contextWindow" defaultValue={selected.capabilityProfile?.limits?.contextWindow ?? ''} /></Field>
+                  <Field label="Max output tokens"><TextInput name="maxOutputTokens" defaultValue={selected.capabilityProfile?.limits?.maxOutputTokens ?? ''} /></Field>
+                  <Field label="Quality class"><Select name="qualityClass" defaultValue={selected.capabilityProfile?.operationalClasses?.qualityClass ?? ''}><option value="">—</option>{['low', 'medium', 'high', 'frontier'].map((option) => <option key={option} value={option}>{option}</option>)}</Select></Field>
+                  <Field label="Cost class"><Select name="costClass" defaultValue={selected.capabilityProfile?.operationalClasses?.costClass ?? ''}><option value="">—</option>{['low', 'medium', 'high'].map((option) => <option key={option} value={option}>{option}</option>)}</Select></Field>
+                  <Field label="Latency class"><Select name="latencyClass" defaultValue={selected.capabilityProfile?.operationalClasses?.latencyClass ?? ''}><option value="">—</option>{['low', 'medium', 'high'].map((option) => <option key={option} value={option}>{option}</option>)}</Select></Field>
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 12 }}>
-                  {[
-                    { name: 'toolCalling', value: Boolean(selected.capabilityProfile?.features?.toolCalling) },
-                    { name: 'structuredOutput', value: Boolean(selected.capabilityProfile?.features?.structuredOutput) },
-                    { name: 'streaming', value: Boolean(selected.capabilityProfile?.features?.streaming) },
-                    { name: 'reasoningMode', value: Boolean(selected.capabilityProfile?.features?.reasoningMode) },
-                  ].map((field) => (
-                    <label key={field.name} style={{ display: 'grid', gap: 6 }}><span>{field.name}</span><select name={field.name} defaultValue={String(field.value)} style={{ padding: 10, borderRadius: 10, border: '1px solid var(--line)' }}><option value="true">true</option><option value="false">false</option></select></label>
-                  ))}
-                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 12 }}>{[{ name: 'toolCalling', value: Boolean(selected.capabilityProfile?.features?.toolCalling) }, { name: 'structuredOutput', value: Boolean(selected.capabilityProfile?.features?.structuredOutput) }, { name: 'streaming', value: Boolean(selected.capabilityProfile?.features?.streaming) }, { name: 'reasoningMode', value: Boolean(selected.capabilityProfile?.features?.reasoningMode) }].map((field) => <Field key={field.name} label={field.name}><BooleanSelect name={field.name} defaultValue={field.value} /></Field>)}</div>
                 <div style={{ display: 'flex', justifyContent: 'flex-end' }}><SaveButton label="Save capability" /></div>
               </form>
 
@@ -410,15 +348,15 @@ export function ModelEditor({ rows, details, providerOptions }: Props) {
                 <input type="hidden" name="modelId" value={selected.model.id} />
                 <h3 style={{ margin: 0 }}>Suitability / specialisation</h3>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 16 }}>
-                  <label style={{ display: 'grid', gap: 6 }}><span>Strength notes</span><textarea name="strengthNotes" defaultValue={selected.suitabilityProfile?.strengthNotes ?? ''} rows={3} style={{ padding: 10, borderRadius: 10, border: '1px solid var(--line)' }} /></label>
-                  <label style={{ display: 'grid', gap: 6 }}><span>Weakness notes</span><textarea name="weaknessNotes" defaultValue={selected.suitabilityProfile?.weaknessNotes ?? ''} rows={3} style={{ padding: 10, borderRadius: 10, border: '1px solid var(--line)' }} /></label>
-                  <label style={{ display: 'grid', gap: 6 }}><span>Recommended for (comma-separated)</span><input name="recommendedFor" defaultValue={selected.suitabilityProfile?.recommendedFor?.join(', ') ?? ''} style={{ padding: 10, borderRadius: 10, border: '1px solid var(--line)' }} /></label>
-                  <label style={{ display: 'grid', gap: 6 }}><span>Avoid for (comma-separated)</span><input name="avoidFor" defaultValue={selected.suitabilityProfile?.avoidFor?.join(', ') ?? ''} style={{ padding: 10, borderRadius: 10, border: '1px solid var(--line)' }} /></label>
+                  <Field label="Strength notes"><TextArea name="strengthNotes" defaultValue={selected.suitabilityProfile?.strengthNotes ?? ''} rows={3} /></Field>
+                  <Field label="Weakness notes"><TextArea name="weaknessNotes" defaultValue={selected.suitabilityProfile?.weaknessNotes ?? ''} rows={3} /></Field>
+                  <Field label="Recommended for (comma-separated)"><TextInput name="recommendedFor" defaultValue={selected.suitabilityProfile?.recommendedFor?.join(', ') ?? ''} /></Field>
+                  <Field label="Avoid for (comma-separated)"><TextInput name="avoidFor" defaultValue={selected.suitabilityProfile?.avoidFor?.join(', ') ?? ''} /></Field>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 16 }}>
-                  <label style={{ display: 'grid', gap: 6 }}><span>Skill scores (`key=value` per line)</span><textarea name="skillScores" defaultValue={scoreMapToText(selected.suitabilityProfile?.skillScores)} rows={8} style={{ padding: 10, borderRadius: 10, border: '1px solid var(--line)', fontFamily: 'ui-monospace, monospace' }} /></label>
-                  <label style={{ display: 'grid', gap: 6 }}><span>Task scores (`key=value` per line)</span><textarea name="taskScores" defaultValue={scoreMapToText(selected.suitabilityProfile?.taskScores)} rows={8} style={{ padding: 10, borderRadius: 10, border: '1px solid var(--line)', fontFamily: 'ui-monospace, monospace' }} /></label>
-                  <label style={{ display: 'grid', gap: 6 }}><span>Agent type scores (`key=value` per line)</span><textarea name="agentTypeScores" defaultValue={scoreMapToText(selected.suitabilityProfile?.agentTypeScores)} rows={8} style={{ padding: 10, borderRadius: 10, border: '1px solid var(--line)', fontFamily: 'ui-monospace, monospace' }} /></label>
+                  <Field label="Skill scores (`key=value` per line)"><TextArea name="skillScores" defaultValue={scoreMapToText(selected.suitabilityProfile?.skillScores)} rows={8} style={{ ...inputStyle, fontFamily: 'ui-monospace, monospace' }} /></Field>
+                  <Field label="Task scores (`key=value` per line)"><TextArea name="taskScores" defaultValue={scoreMapToText(selected.suitabilityProfile?.taskScores)} rows={8} style={{ ...inputStyle, fontFamily: 'ui-monospace, monospace' }} /></Field>
+                  <Field label="Agent type scores (`key=value` per line)"><TextArea name="agentTypeScores" defaultValue={scoreMapToText(selected.suitabilityProfile?.agentTypeScores)} rows={8} style={{ ...inputStyle, fontFamily: 'ui-monospace, monospace' }} /></Field>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'flex-end' }}><SaveButton label="Save suitability" /></div>
               </form>
