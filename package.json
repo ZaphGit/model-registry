@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
-    "seed": "tsx scripts/seed-sqlite.ts"
+    "seed": "tsx scripts/seed-sqlite.ts",
+    "test:registry": "tsx scripts/test-registry.ts"
   },
   "dependencies": {
     "ajv": "^8.17.1",
