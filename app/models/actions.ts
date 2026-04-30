@@ -1,7 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { createModelRecord, createPricingRecord, updateCapabilityRecord, updateIntegrationRecord, updateModelRecord, updatePricingRecord, updateRouteRecord, updateSuitabilityRecord } from '@/lib/registry/update';
+import { createIntegrationRecord, createModelRecord, createPricingRecord, createRouteRecord, updateCapabilityRecord, updateIntegrationRecord, updateModelRecord, updatePricingRecord, updateRouteRecord, updateSuitabilityRecord } from '@/lib/registry/update';
 import type { CapabilityProfile, IntegrationMetadata, Model, ModelRoute, PricingRecord } from '@/lib/registry/types';
 
 function asModelStatus(value: string): Model['status'] {
@@ -75,6 +75,27 @@ export async function createModelAction(formData: FormData) {
 
   if (!providerId || !displayName || !apiModelId || !family || !tier) throw new Error('Provider, display name, API model id, family, and tier are required.');
   createModelRecord({ providerId, displayName, apiModelId, family, tier, status, integrationTarget });
+  revalidatePath('/models');
+}
+
+export async function createRouteAction(formData: FormData) {
+  const modelId = String(formData.get('modelId') ?? '');
+  const providerId = String(formData.get('providerId') ?? '');
+  const label = String(formData.get('label') ?? '').trim();
+  if (!modelId || !providerId || !label) throw new Error('Model id, provider id, and route label are required.');
+
+  createRouteRecord({
+    modelId,
+    providerId,
+    label,
+    baseUrl: String(formData.get('baseUrl') ?? '').trim(),
+    routeType: asRouteType(String(formData.get('routeType') ?? 'direct')),
+    supportsTools: parseBoolean(formData.get('supportsTools')),
+    supportsStreaming: parseBoolean(formData.get('supportsStreaming')),
+    supportsStructuredOutput: parseBoolean(formData.get('supportsStructuredOutput')),
+    supportsReasoningMode: parseBoolean(formData.get('supportsReasoningMode')),
+  });
+
   revalidatePath('/models');
 }
 
@@ -170,6 +191,23 @@ export async function saveSuitabilityAction(formData: FormData) {
   if (!modelId) throw new Error('Model id is required for suitability update.');
 
   updateSuitabilityRecord({ modelId, strengthNotes: String(formData.get('strengthNotes') ?? '').trim(), weaknessNotes: String(formData.get('weaknessNotes') ?? '').trim(), recommendedFor: parseCsv(formData.get('recommendedFor')), avoidFor: parseCsv(formData.get('avoidFor')), skillScores: parseScoreMap(formData.get('skillScores')), taskScores: parseScoreMap(formData.get('taskScores')), agentTypeScores: parseScoreMap(formData.get('agentTypeScores')) });
+  revalidatePath('/models');
+}
+
+export async function createIntegrationAction(formData: FormData) {
+  const modelRouteId = String(formData.get('modelRouteId') ?? '');
+  if (!modelRouteId) throw new Error('Model route id is required for integration creation.');
+
+  createIntegrationRecord({
+    modelRouteId,
+    integrationTarget: asIntegrationTarget(String(formData.get('integrationTarget') ?? 'openclaw')),
+    suggestedAlias: String(formData.get('suggestedAlias') ?? '').trim(),
+    providerModelString: String(formData.get('providerModelString') ?? '').trim(),
+    compatibilityNotes: String(formData.get('compatibilityNotes') ?? '').trim(),
+    requiredFields: parseCsv(formData.get('requiredFields')),
+    supportsFallbackRole: parseBoolean(formData.get('supportsFallbackRole')),
+  });
+
   revalidatePath('/models');
 }
 

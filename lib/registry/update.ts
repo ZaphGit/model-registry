@@ -32,6 +32,18 @@ export interface UpdateRouteInput {
   supportsReasoningMode?: boolean;
 }
 
+export interface CreateRouteInput {
+  modelId: string;
+  providerId: string;
+  label: string;
+  baseUrl?: string;
+  routeType: ModelRoute['routeType'];
+  supportsTools?: boolean;
+  supportsStreaming?: boolean;
+  supportsStructuredOutput?: boolean;
+  supportsReasoningMode?: boolean;
+}
+
 export interface UpdateCapabilityInput {
   modelId: string;
   contextWindow?: number;
@@ -85,8 +97,22 @@ export interface UpdateIntegrationInput {
   supportsFallbackRole?: boolean;
 }
 
+export interface CreateIntegrationInput {
+  modelRouteId: string;
+  integrationTarget: IntegrationMetadata['integrationTarget'];
+  suggestedAlias?: string;
+  providerModelString?: string;
+  compatibilityNotes?: string;
+  requiredFields?: string[];
+  supportsFallbackRole?: boolean;
+}
+
 function slugify(value: string) {
   return value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+}
+
+function todayString() {
+  return new Date().toISOString().slice(0, 10);
 }
 
 export function createModelRecord(input: CreateModelInput) {
@@ -100,7 +126,7 @@ export function createModelRecord(input: CreateModelInput) {
   const existing = db.prepare('SELECT 1 FROM models WHERE id = ?').get(modelId);
   if (existing) throw new Error(`Model already exists: ${modelId}`);
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayString();
 
   const model: Model = { id: modelId, providerId: input.providerId, displayName: input.displayName, apiModelId: input.apiModelId, family: input.family, tier: input.tier, status: input.status, releaseStage: 'active', recordStatus: 'draft', description: '', aliases: [], sourceUrls: [], lastVerifiedAt: today };
   const route: ModelRoute = { id: routeId, modelId, providerId: input.providerId, routeType: 'direct', label: `${input.displayName} direct route`, authMethod: 'api-key', requiredSecrets: [], supportsStreaming: true, supportsTools: true, supportsStructuredOutput: true, supportsReasoningMode: false, status: 'active', recordStatus: 'draft', lastVerifiedAt: today };
@@ -118,6 +144,34 @@ export function createModelRecord(input: CreateModelInput) {
 
   tx();
   return { model, route, suitability, capability, integration };
+}
+
+export function createRouteRecord(input: CreateRouteInput) {
+  const db = SqliteRegistryStore.getDb();
+  const modelRow = db.prepare('SELECT payload FROM models WHERE id = ?').get(input.modelId) as { payload: string } | undefined;
+  if (!modelRow) throw new Error(`Model not found for route creation: ${input.modelId}`);
+
+  const routeId = `route-${input.modelId}-${slugify(input.label)}-${Date.now()}`;
+  const route: ModelRoute = {
+    id: routeId,
+    modelId: input.modelId,
+    providerId: input.providerId,
+    routeType: input.routeType,
+    label: input.label,
+    baseUrl: input.baseUrl?.trim() || undefined,
+    authMethod: 'api-key',
+    requiredSecrets: [],
+    supportsStreaming: input.supportsStreaming,
+    supportsTools: input.supportsTools,
+    supportsStructuredOutput: input.supportsStructuredOutput,
+    supportsReasoningMode: input.supportsReasoningMode,
+    status: 'active',
+    recordStatus: 'draft',
+    lastVerifiedAt: todayString(),
+  };
+
+  db.prepare('INSERT INTO model_routes (id, model_id, provider_id, payload) VALUES (?, ?, ?, ?)').run(route.id, route.modelId, route.providerId, JSON.stringify(route));
+  return route;
 }
 
 export function updateRouteRecord(input: UpdateRouteInput) {
@@ -199,7 +253,7 @@ export function createPricingRecord(input: CreatePricingInput) {
   if (!routeRow) throw new Error(`Route not found for pricing record: ${input.modelRouteId}`);
 
   const route = JSON.parse(routeRow.payload) as ModelRoute;
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayString();
   const pricingId = `price-${route.modelId}-${slugify(input.billingUnit)}-${Date.now()}`;
 
   const pricing: PricingRecord = {
@@ -240,6 +294,29 @@ export function updateSuitabilityRecord(input: UpdateSuitabilityInput) {
   const updated: SuitabilityProfile = { ...existing, strengthNotes: input.strengthNotes?.trim() || undefined, weaknessNotes: input.weaknessNotes?.trim() || undefined, recommendedFor: input.recommendedFor?.filter(Boolean) ?? existing.recommendedFor, avoidFor: input.avoidFor?.filter(Boolean) ?? existing.avoidFor, skillScores: input.skillScores ?? existing.skillScores, taskScores: input.taskScores ?? existing.taskScores, agentTypeScores: input.agentTypeScores ?? existing.agentTypeScores };
   db.prepare('UPDATE suitability_profiles SET payload = ? WHERE id = ?').run(JSON.stringify(updated), row.id);
   return updated;
+}
+
+export function createIntegrationRecord(input: CreateIntegrationInput) {
+  const db = SqliteRegistryStore.getDb();
+  const routeRow = db.prepare('SELECT payload FROM model_routes WHERE id = ?').get(input.modelRouteId) as { payload: string } | undefined;
+  if (!routeRow) throw new Error(`Route not found for integration metadata: ${input.modelRouteId}`);
+
+  const route = JSON.parse(routeRow.payload) as ModelRoute;
+  const integrationId = `int-${route.modelId}-${input.integrationTarget}-${Date.now()}`;
+  const integration: IntegrationMetadata = {
+    id: integrationId,
+    modelRouteId: input.modelRouteId,
+    integrationTarget: input.integrationTarget,
+    providerModelString: input.providerModelString?.trim() || undefined,
+    suggestedAlias: input.suggestedAlias?.trim() || undefined,
+    compatibilityNotes: input.compatibilityNotes?.trim() || undefined,
+    requiredFields: input.requiredFields?.filter(Boolean) ?? [],
+    supportsFallbackRole: input.supportsFallbackRole ?? true,
+    recordStatus: 'draft',
+  };
+
+  db.prepare('INSERT INTO integration_metadata (id, model_route_id, payload) VALUES (?, ?, ?)').run(integration.id, integration.modelRouteId, JSON.stringify(integration));
+  return integration;
 }
 
 export function updateIntegrationRecord(input: UpdateIntegrationInput) {
