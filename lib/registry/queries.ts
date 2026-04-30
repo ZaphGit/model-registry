@@ -15,6 +15,8 @@ export interface ModelListRow {
   contextWindow: number | null;
   supportsTools: boolean | null;
   qualityClass: string | null;
+  integrationTargets: string[];
+  suitabilityKeywords: string[];
 }
 
 export interface ModelDetailRecord {
@@ -34,32 +36,44 @@ function parsePayloadRows<T>(rows: PayloadRow[]): T[] {
 }
 
 export function getModelListRows(): ModelListRow[] {
-  const db = SqliteRegistryStore.getDb();
+  const snapshot = SqliteRegistryStore.readSnapshot();
 
-  const rows = db.prepare(`
-    SELECT
-      m.id AS modelId,
-      json_extract(m.payload, '$.displayName') AS displayName,
-      json_extract(p.payload, '$.name') AS providerName,
-      json_extract(m.payload, '$.family') AS family,
-      json_extract(m.payload, '$.tier') AS tier,
-      json_extract(m.payload, '$.status') AS status,
-      json_extract(r.payload, '$.label') AS routeLabel,
-      json_extract(r.payload, '$.routeType') AS routeType,
-      json_extract(pr.payload, '$.inputPrice') AS inputPrice,
-      json_extract(pr.payload, '$.outputPrice') AS outputPrice,
-      json_extract(cp.payload, '$.limits.contextWindow') AS contextWindow,
-      json_extract(r.payload, '$.supportsTools') AS supportsTools,
-      json_extract(cp.payload, '$.operationalClasses.qualityClass') AS qualityClass
-    FROM models m
-    INNER JOIN providers p ON p.id = m.provider_id
-    LEFT JOIN model_routes r ON r.model_id = m.id
-    LEFT JOIN pricing_records pr ON pr.model_route_id = r.id
-    LEFT JOIN capability_profiles cp ON cp.model_id = m.id
-    ORDER BY providerName, displayName
-  `).all() as ModelListRow[];
+  return snapshot.models.map((model) => {
+    const provider = snapshot.providers.find((item) => item.id === model.providerId) ?? null;
+    const routes = snapshot.modelRoutes.filter((item) => item.modelId === model.id);
+    const primaryRoute = routes[0] ?? null;
+    const primaryPricing = primaryRoute ? snapshot.pricingRecords.find((item) => item.modelRouteId === primaryRoute.id) ?? null : null;
+    const capability = snapshot.capabilityProfiles.find((item) => item.modelId === model.id) ?? null;
+    const suitability = snapshot.suitabilityProfiles.find((item) => item.modelId === model.id) ?? null;
+    const integrationTargets = snapshot.integrationMetadata
+      .filter((item) => routes.some((route) => route.id === item.modelRouteId))
+      .map((item) => item.integrationTarget);
 
-  return rows;
+    const suitabilityKeywords = [
+      ...Object.keys(suitability?.skillScores ?? {}),
+      ...Object.keys(suitability?.taskScores ?? {}),
+      ...Object.keys(suitability?.agentTypeScores ?? {}),
+      ...(suitability?.recommendedFor ?? []),
+    ];
+
+    return {
+      modelId: model.id,
+      displayName: model.displayName,
+      providerName: provider?.name ?? 'Unknown provider',
+      family: model.family,
+      tier: model.tier,
+      status: model.status,
+      routeLabel: primaryRoute?.label ?? null,
+      routeType: primaryRoute?.routeType ?? null,
+      inputPrice: primaryPricing?.inputPrice ?? null,
+      outputPrice: primaryPricing?.outputPrice ?? null,
+      contextWindow: capability?.limits?.contextWindow ?? null,
+      supportsTools: primaryRoute?.supportsTools ?? null,
+      qualityClass: capability?.operationalClasses?.qualityClass ?? null,
+      integrationTargets,
+      suitabilityKeywords,
+    };
+  });
 }
 
 export function getModelDetailRecord(modelId: string): ModelDetailRecord | null {

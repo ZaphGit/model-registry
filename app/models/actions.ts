@@ -1,7 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { updateModelRecord } from '@/lib/registry/update';
+import { updateIntegrationRecord, updateModelRecord, updateSuitabilityRecord } from '@/lib/registry/update';
 import type { Model } from '@/lib/registry/types';
 
 function asModelStatus(value: string): Model['status'] {
@@ -10,6 +10,30 @@ function asModelStatus(value: string): Model['status'] {
   }
 
   return 'active';
+}
+
+function parseCsv(value: FormDataEntryValue | null): string[] {
+  return String(value ?? '')
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function parseScoreMap(value: FormDataEntryValue | null): Record<string, number> {
+  const text = String(value ?? '').trim();
+  if (!text) return {};
+
+  return Object.fromEntries(
+    text
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .map((line) => {
+        const [key, raw] = line.split('=').map((part) => part.trim());
+        return [key, Number(raw)];
+      })
+      .filter(([key, raw]) => key && Number.isFinite(raw)),
+  );
 }
 
 export async function saveModelAction(formData: FormData) {
@@ -25,14 +49,39 @@ export async function saveModelAction(formData: FormData) {
     throw new Error('Model id, display name, family, and tier are required.');
   }
 
-  updateModelRecord({
+  updateModelRecord({ id, displayName, family, tier, status, description, notes });
+  revalidatePath('/models');
+}
+
+export async function saveSuitabilityAction(formData: FormData) {
+  const modelId = String(formData.get('modelId') ?? '');
+  if (!modelId) throw new Error('Model id is required for suitability update.');
+
+  updateSuitabilityRecord({
+    modelId,
+    strengthNotes: String(formData.get('strengthNotes') ?? '').trim(),
+    weaknessNotes: String(formData.get('weaknessNotes') ?? '').trim(),
+    recommendedFor: parseCsv(formData.get('recommendedFor')),
+    avoidFor: parseCsv(formData.get('avoidFor')),
+    skillScores: parseScoreMap(formData.get('skillScores')),
+    taskScores: parseScoreMap(formData.get('taskScores')),
+    agentTypeScores: parseScoreMap(formData.get('agentTypeScores')),
+  });
+
+  revalidatePath('/models');
+}
+
+export async function saveIntegrationAction(formData: FormData) {
+  const id = String(formData.get('id') ?? '');
+  if (!id) throw new Error('Integration metadata id is required.');
+
+  updateIntegrationRecord({
     id,
-    displayName,
-    family,
-    tier,
-    status,
-    description,
-    notes,
+    suggestedAlias: String(formData.get('suggestedAlias') ?? '').trim(),
+    providerModelString: String(formData.get('providerModelString') ?? '').trim(),
+    compatibilityNotes: String(formData.get('compatibilityNotes') ?? '').trim(),
+    requiredFields: parseCsv(formData.get('requiredFields')),
+    supportsFallbackRole: String(formData.get('supportsFallbackRole') ?? '') === 'true',
   });
 
   revalidatePath('/models');
