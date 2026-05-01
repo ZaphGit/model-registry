@@ -45,9 +45,13 @@ export function getModelListRows(): ModelListRow[] {
     const primaryPricing = primaryRoute ? snapshot.pricingRecords.find((item) => item.modelRouteId === primaryRoute.id) ?? null : null;
     const capability = snapshot.capabilityProfiles.find((item) => item.modelId === model.id) ?? null;
     const suitability = snapshot.suitabilityProfiles.find((item) => item.modelId === model.id) ?? null;
-    const integrationTargets = snapshot.integrationMetadata
-      .filter((item) => routes.some((route) => route.id === item.modelRouteId))
-      .map((item) => item.integrationTarget);
+    const integrationTargets = [
+      ...new Set(
+        snapshot.integrationMetadata
+          .filter((item) => routes.some((route) => route.id === item.modelRouteId))
+          .map((item) => item.integrationTarget),
+      ),
+    ];
 
     const suitabilityKeywords = [
       ...Object.keys(suitability?.skillScores ?? {}),
