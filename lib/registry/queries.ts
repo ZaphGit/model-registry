@@ -3,13 +3,17 @@ import type { CapabilityProfile, IntegrationMetadata, Model, ModelRoute, Pricing
 
 export interface ModelListRow {
   modelId: string;
+  apiModelId: string;
   displayName: string;
+  providerId: string;
   providerName: string;
   family: string;
   tier: string;
   status: string;
   routeLabel: string | null;
   routeType: string | null;
+  routeBaseUrls: string[];
+  routeProviderModelStrings: string[];
   inputPrice: number | null;
   outputPrice: number | null;
   contextWindow: number | null;
@@ -45,30 +49,35 @@ export function getModelListRows(): ModelListRow[] {
     const primaryPricing = primaryRoute ? snapshot.pricingRecords.find((item) => item.modelRouteId === primaryRoute.id) ?? null : null;
     const capability = snapshot.capabilityProfiles.find((item) => item.modelId === model.id) ?? null;
     const suitability = snapshot.suitabilityProfiles.find((item) => item.modelId === model.id) ?? null;
-    const integrationTargets = [
-      ...new Set(
-        snapshot.integrationMetadata
-          .filter((item) => routes.some((route) => route.id === item.modelRouteId))
-          .map((item) => item.integrationTarget),
-      ),
-    ];
+    const routeIds = new Set(routes.map((route) => route.id));
+    const integrations = snapshot.integrationMetadata.filter((item) => routeIds.has(item.modelRouteId));
+
+    const integrationTargets = [...new Set(integrations.map((item) => item.integrationTarget))];
 
     const suitabilityKeywords = [
-      ...Object.keys(suitability?.skillScores ?? {}),
-      ...Object.keys(suitability?.taskScores ?? {}),
-      ...Object.keys(suitability?.agentTypeScores ?? {}),
-      ...(suitability?.recommendedFor ?? []),
+      ...new Set([
+        ...Object.keys(suitability?.skillScores ?? {}),
+        ...Object.keys(suitability?.taskScores ?? {}),
+        ...Object.keys(suitability?.agentTypeScores ?? {}),
+        ...(suitability?.recommendedFor ?? []),
+      ]),
     ];
 
     return {
       modelId: model.id,
+      apiModelId: model.apiModelId,
       displayName: model.displayName,
+      providerId: model.providerId,
       providerName: provider?.name ?? 'Unknown provider',
       family: model.family,
       tier: model.tier,
       status: model.status,
       routeLabel: primaryRoute?.label ?? null,
       routeType: primaryRoute?.routeType ?? null,
+      routeBaseUrls: [...new Set(routes.map((route) => route.baseUrl).filter((value): value is string => Boolean(value)))],
+      routeProviderModelStrings: [
+        ...new Set(integrations.map((item) => item.providerModelString).filter((value): value is string => Boolean(value))),
+      ],
       inputPrice: primaryPricing?.inputPrice ?? null,
       outputPrice: primaryPricing?.outputPrice ?? null,
       contextWindow: capability?.limits?.contextWindow ?? null,

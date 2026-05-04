@@ -13,6 +13,7 @@
     "test:api": "tsx scripts/test-api-routes.ts"
   },
   "dependencies": {
+    "@tanstack/react-table": "^8.21.3",
     "ajv": "^8.17.1",
     "ajv-formats": "^3.0.1",
     "better-sqlite3": "^12.9.0",

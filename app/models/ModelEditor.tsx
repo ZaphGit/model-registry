@@ -3,6 +3,16 @@
 import { useActionState, useMemo, useState } from 'react';
 import { useFormStatus } from 'react-dom';
 import {
+  type ColumnDef,
+  type PaginationState,
+  flexRender,
+  getCoreRowModel,
+  getFilteredRowModel,
+  getPaginationRowModel,
+  getSortedRowModel,
+  useReactTable,
+} from '@tanstack/react-table';
+import {
   createIntegrationAction,
   createModelAction,
   createPricingAction,
@@ -163,6 +173,12 @@ function costBucket(inputPrice: number | null) {
   return 'high';
 }
 
+function sortLabel(isSorted: false | 'asc' | 'desc') {
+  if (isSorted === 'asc') return ' ↑';
+  if (isSorted === 'desc') return ' ↓';
+  return '';
+}
+
 function RouteCard({ route, index, pricingRecords, integrationMetadata }: { route: ModelDetailRecord['routes'][number]; index: number; pricingRecords: ModelDetailRecord['pricingRecords']; integrationMetadata: ModelDetailRecord['integrationMetadata'] }) {
   const routeBooleanFields = [
     { name: 'supportsTools', value: Boolean(route.supportsTools) },
@@ -286,6 +302,10 @@ export function ModelEditor({ rows, details, providerOptions }: Props) {
   const [qualityFilter, setQualityFilter] = useState('all');
   const [contextFilter, setContextFilter] = useState('all');
   const [costFilter, setCostFilter] = useState('all');
+  const [search, setSearch] = useState('');
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [sorting, setSorting] = useState([{ id: 'displayName', desc: false }]);
+  const [pagination, setPagination] = useState<PaginationState>({ pageIndex: 0, pageSize: 25 });
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [importState, importAction] = useActionState<ImportModelBundleResult | null, FormData>(importModelBundleAction, null);
@@ -308,58 +328,220 @@ export function ModelEditor({ rows, details, providerOptions }: Props) {
           const haystack = [row.displayName, row.family, ...row.suitabilityKeywords].join(' ').toLowerCase();
           if (!haystack.includes(needle)) return false;
         }
+        if (search.trim()) {
+          const needle = search.trim().toLowerCase();
+          const haystack = [
+            row.displayName,
+            row.modelId,
+            row.apiModelId,
+            row.providerName,
+            row.providerId,
+            row.family,
+            row.tier,
+            row.status,
+            row.routeLabel ?? '',
+            row.routeType ?? '',
+            ...row.routeBaseUrls,
+            ...row.routeProviderModelStrings,
+            ...row.integrationTargets,
+            ...row.suitabilityKeywords,
+          ]
+            .join(' ')
+            .toLowerCase();
+          if (!haystack.includes(needle)) return false;
+        }
         return true;
       }),
-    [rows, providerFilter, integrationFilter, toolsOnly, qualityFilter, contextFilter, costFilter, skillFilter],
+    [rows, providerFilter, integrationFilter, toolsOnly, qualityFilter, contextFilter, costFilter, skillFilter, search],
   );
+
+  const columns = useMemo<ColumnDef<ModelListRow>[]>(
+    () => [
+      {
+        accessorKey: 'displayName',
+        header: 'Model',
+        cell: ({ row }) => (
+          <div>
+            <div style={{ fontWeight: 600 }}>{row.original.displayName}</div>
+            <div style={{ fontSize: 12, color: 'var(--muted)' }}>{row.original.apiModelId}</div>
+          </div>
+        ),
+      },
+      { accessorKey: 'providerName', header: 'Provider' },
+      { accessorKey: 'family', header: 'Family' },
+      { accessorKey: 'tier', header: 'Tier' },
+      {
+        accessorKey: 'routeLabel',
+        header: 'Route',
+        cell: ({ row }) => (
+          <div>
+            <div>{row.original.routeLabel ?? '—'}</div>
+            <div style={{ fontSize: 12, color: 'var(--muted)' }}>{row.original.routeProviderModelStrings[0] ?? row.original.routeType ?? '—'}</div>
+          </div>
+        ),
+      },
+      {
+        accessorKey: 'inputPrice',
+        header: 'Input',
+        cell: ({ row }) => money(row.original.inputPrice),
+      },
+      {
+        accessorKey: 'outputPrice',
+        header: 'Output',
+        cell: ({ row }) => money(row.original.outputPrice),
+      },
+      {
+        accessorKey: 'contextWindow',
+        header: 'Context',
+        cell: ({ row }) => row.original.contextWindow?.toLocaleString() ?? '—',
+      },
+      {
+        accessorKey: 'supportsTools',
+        header: 'Tools',
+        cell: ({ row }) => (row.original.supportsTools == null ? '—' : row.original.supportsTools ? 'Yes' : 'No'),
+      },
+      {
+        accessorKey: 'qualityClass',
+        header: 'Quality',
+        cell: ({ row }) => row.original.qualityClass ?? '—',
+      },
+    ],
+    [],
+  );
+
+  const table = useReactTable({
+    data: filteredRows,
+    columns,
+    state: { sorting, pagination },
+    onSortingChange: setSorting,
+    onPaginationChange: setPagination,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+  });
 
   return (
     <>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, marginBottom: 16 }}>
-        <div style={{ fontSize: 13, color: 'var(--muted)' }}>Main workbench: filter, inspect, edit, import, and create model records from one screen.</div>
+        <div style={{ fontSize: 13, color: 'var(--muted)' }}>Main workbench: search, filter, paginate, inspect, edit, import, and create model records from one screen.</div>
         <div style={{ display: 'flex', gap: 12 }}>
           <button onClick={() => setIsImportOpen(true)} style={{ background: 'white', color: 'var(--accent)', border: '1px solid var(--accent)', borderRadius: 10, padding: '10px 14px', cursor: 'pointer' }}>Import bundle</button>
           <button onClick={() => setIsCreateOpen(true)} style={{ background: 'var(--accent)', color: 'white', border: 0, borderRadius: 10, padding: '10px 14px', cursor: 'pointer' }}>Add model</button>
         </div>
       </div>
 
-      <div style={{ display: 'grid', gap: 16, marginBottom: 16, background: 'var(--panel)', border: '1px solid var(--line)', borderRadius: 16, padding: 16 }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 12 }}>
-          <Field label="Provider"><Select value={providerFilter} onChange={(event) => setProviderFilter(event.target.value)}><option value="all">all</option>{providerOptions.map((option) => <option key={option.id} value={option.name}>{option.name}</option>)}</Select></Field>
-          <Field label="Integration target"><Select value={integrationFilter} onChange={(event) => setIntegrationFilter(event.target.value)}>{integrationOptions.map((option) => <option key={option} value={option}>{option}</option>)}</Select></Field>
-          <Field label="Skill / suitability keyword"><TextInput value={skillFilter} onChange={(event) => setSkillFilter(event.target.value)} placeholder="coding, multimodal, orchestrator…" /></Field>
-          <Field label="Tools support"><Select value={toolsOnly ? 'yes' : 'all'} onChange={(event) => setToolsOnly(event.target.value === 'yes')}><option value="all">all</option><option value="yes">tools only</option></Select></Field>
-          <Field label="Quality class"><Select value={qualityFilter} onChange={(event) => setQualityFilter(event.target.value)}><option value="all">all</option>{['low', 'medium', 'high', 'frontier', 'unknown'].map((option) => <option key={option} value={option}>{option}</option>)}</Select></Field>
-          <Field label="Context size"><Select value={contextFilter} onChange={(event) => setContextFilter(event.target.value)}><option value="all">all</option>{['small', 'medium', 'large', 'xl', 'unknown'].map((option) => <option key={option} value={option}>{option}</option>)}</Select></Field>
-          <Field label="Cost band"><Select value={costFilter} onChange={(event) => setCostFilter(event.target.value)}><option value="all">all</option>{['low', 'medium', 'high', 'unknown'].map((option) => <option key={option} value={option}>{option}</option>)}</Select></Field>
+      <div style={{ display: 'grid', gap: 12, marginBottom: 16, background: 'var(--panel)', border: '1px solid var(--line)', borderRadius: 16, padding: 16 }}>
+        <div style={{ display: 'flex', gap: 12, alignItems: 'end', flexWrap: 'wrap' }}>
+          <div style={{ flex: '1 1 420px', minWidth: 280 }}>
+            <Field label="Search models">
+              <TextInput
+                value={search}
+                onChange={(event) => {
+                  setSearch(event.target.value);
+                  setPagination((current) => ({ ...current, pageIndex: 0 }));
+                }}
+                placeholder="Search name, model ID, provider, family, route label, provider model string…"
+              />
+            </Field>
+          </div>
+          <button
+            type="button"
+            onClick={() => setFiltersOpen((value) => !value)}
+            style={{ border: '1px solid var(--line)', background: 'white', borderRadius: 10, padding: '10px 14px', cursor: 'pointer', minWidth: 160 }}
+          >
+            {filtersOpen ? 'Hide advanced filters' : 'Show advanced filters'}
+          </button>
         </div>
-        <div style={{ fontSize: 13, color: 'var(--muted)' }}>{filteredRows.length} model rows match current filters.</div>
+
+        {filtersOpen ? (
+          <div style={{ display: 'grid', gap: 16, borderTop: '1px solid var(--line)', paddingTop: 16 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 12 }}>
+              <Field label="Provider"><Select value={providerFilter} onChange={(event) => setProviderFilter(event.target.value)}><option value="all">all</option>{providerOptions.map((option) => <option key={option.id} value={option.name}>{option.name}</option>)}</Select></Field>
+              <Field label="Integration target"><Select value={integrationFilter} onChange={(event) => setIntegrationFilter(event.target.value)}>{integrationOptions.map((option) => <option key={option} value={option}>{option}</option>)}</Select></Field>
+              <Field label="Skill / suitability keyword"><TextInput value={skillFilter} onChange={(event) => setSkillFilter(event.target.value)} placeholder="coding, multimodal, orchestrator…" /></Field>
+              <Field label="Tools support"><Select value={toolsOnly ? 'yes' : 'all'} onChange={(event) => setToolsOnly(event.target.value === 'yes')}><option value="all">all</option><option value="yes">tools only</option></Select></Field>
+              <Field label="Quality class"><Select value={qualityFilter} onChange={(event) => setQualityFilter(event.target.value)}><option value="all">all</option>{['low', 'medium', 'high', 'frontier', 'unknown'].map((option) => <option key={option} value={option}>{option}</option>)}</Select></Field>
+              <Field label="Context size"><Select value={contextFilter} onChange={(event) => setContextFilter(event.target.value)}><option value="all">all</option>{['small', 'medium', 'large', 'xl', 'unknown'].map((option) => <option key={option} value={option}>{option}</option>)}</Select></Field>
+              <Field label="Cost band"><Select value={costFilter} onChange={(event) => setCostFilter(event.target.value)}><option value="all">all</option>{['low', 'medium', 'high', 'unknown'].map((option) => <option key={option} value={option}>{option}</option>)}</Select></Field>
+              <Field label="Rows per page">
+                <Select
+                  value={String(pagination.pageSize)}
+                  onChange={(event) => setPagination((current) => ({ pageIndex: 0, pageSize: Number(event.target.value) }))}
+                >
+                  {[25, 50, 100].map((size) => <option key={size} value={size}>{size}</option>)}
+                </Select>
+              </Field>
+            </div>
+          </div>
+        ) : null}
+
+        <div style={{ fontSize: 13, color: 'var(--muted)' }}>
+          {filteredRows.length} model rows match current search/filter state. Showing {table.getRowModel().rows.length} on this page.
+        </div>
       </div>
 
       <div style={{ background: 'var(--panel)', border: '1px solid var(--line)', borderRadius: 16, overflow: 'hidden' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead style={{ background: '#f0f4fb', textAlign: 'left' }}>
-            <tr>
-              {['Model', 'Provider', 'Family', 'Tier', 'Route', 'Input', 'Output', 'Context', 'Tools', 'Quality'].map((label) => <th key={label} style={{ padding: '14px 16px', fontSize: 13, borderBottom: '1px solid var(--line)' }}>{label}</th>)}
-            </tr>
-          </thead>
-          <tbody>
-            {filteredRows.map((row) => (
-              <tr key={row.modelId} onClick={() => { setSelectedModelId(row.modelId); setIsOpen(true); }} style={{ cursor: 'pointer' }}>
-                <td style={{ padding: '14px 16px', borderBottom: '1px solid var(--line)' }}><div style={{ fontWeight: 600 }}>{row.displayName}</div><div style={{ fontSize: 12, color: 'var(--muted)' }}>{row.status}</div></td>
-                <td style={{ padding: '14px 16px', borderBottom: '1px solid var(--line)' }}>{row.providerName}</td>
-                <td style={{ padding: '14px 16px', borderBottom: '1px solid var(--line)' }}>{row.family}</td>
-                <td style={{ padding: '14px 16px', borderBottom: '1px solid var(--line)' }}>{row.tier}</td>
-                <td style={{ padding: '14px 16px', borderBottom: '1px solid var(--line)' }}><div>{row.routeLabel ?? '—'}</div><div style={{ fontSize: 12, color: 'var(--muted)' }}>{row.routeType ?? '—'}</div></td>
-                <td style={{ padding: '14px 16px', borderBottom: '1px solid var(--line)' }}>{money(row.inputPrice)}</td>
-                <td style={{ padding: '14px 16px', borderBottom: '1px solid var(--line)' }}>{money(row.outputPrice)}</td>
-                <td style={{ padding: '14px 16px', borderBottom: '1px solid var(--line)' }}>{row.contextWindow?.toLocaleString() ?? '—'}</td>
-                <td style={{ padding: '14px 16px', borderBottom: '1px solid var(--line)' }}>{row.supportsTools == null ? '—' : row.supportsTools ? 'Yes' : 'No'}</td>
-                <td style={{ padding: '14px 16px', borderBottom: '1px solid var(--line)' }}>{row.qualityClass ?? '—'}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead style={{ background: '#f0f4fb', textAlign: 'left' }}>
+              {table.getHeaderGroups().map((headerGroup) => (
+                <tr key={headerGroup.id}>
+                  {headerGroup.headers.map((header) => {
+                    const canSort = header.column.getCanSort();
+                    const sorted = header.column.getIsSorted();
+                    return (
+                      <th key={header.id} style={{ padding: '14px 16px', fontSize: 13, borderBottom: '1px solid var(--line)', whiteSpace: 'nowrap' }}>
+                        {header.isPlaceholder ? null : canSort ? (
+                          <button
+                            type="button"
+                            onClick={header.column.getToggleSortingHandler()}
+                            style={{ background: 'transparent', border: 0, padding: 0, font: 'inherit', fontWeight: 600, cursor: 'pointer' }}
+                          >
+                            {flexRender(header.column.columnDef.header, header.getContext())}
+                            {sortLabel(sorted)}
+                          </button>
+                        ) : (
+                          flexRender(header.column.columnDef.header, header.getContext())
+                        )}
+                      </th>
+                    );
+                  })}
+                </tr>
+              ))}
+            </thead>
+            <tbody>
+              {table.getRowModel().rows.map((row) => (
+                <tr key={row.id} onClick={() => { setSelectedModelId(row.original.modelId); setIsOpen(true); }} style={{ cursor: 'pointer' }}>
+                  {row.getVisibleCells().map((cell) => (
+                    <td key={cell.id} style={{ padding: '14px 16px', borderBottom: '1px solid var(--line)', verticalAlign: 'top' }}>
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+              {table.getRowModel().rows.length === 0 ? (
+                <tr>
+                  <td colSpan={columns.length} style={{ padding: '24px 16px', textAlign: 'center', color: 'var(--muted)' }}>
+                    No models match the current search/filter state.
+                  </td>
+                </tr>
+              ) : null}
+            </tbody>
+          </table>
+        </div>
+
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, padding: 16, borderTop: '1px solid var(--line)', background: '#fbfcff', flexWrap: 'wrap' }}>
+          <div style={{ fontSize: 13, color: 'var(--muted)' }}>
+            Page {table.getState().pagination.pageIndex + 1} of {Math.max(table.getPageCount(), 1)}
+          </div>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+            <button type="button" onClick={() => table.setPageIndex(0)} disabled={!table.getCanPreviousPage()} style={{ border: '1px solid var(--line)', background: 'white', borderRadius: 10, padding: '8px 12px', cursor: 'pointer' }}>First</button>
+            <button type="button" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()} style={{ border: '1px solid var(--line)', background: 'white', borderRadius: 10, padding: '8px 12px', cursor: 'pointer' }}>Previous</button>
+            <button type="button" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()} style={{ border: '1px solid var(--line)', background: 'white', borderRadius: 10, padding: '8px 12px', cursor: 'pointer' }}>Next</button>
+            <button type="button" onClick={() => table.setPageIndex(table.getPageCount() - 1)} disabled={!table.getCanNextPage()} style={{ border: '1px solid var(--line)', background: 'white', borderRadius: 10, padding: '8px 12px', cursor: 'pointer' }}>Last</button>
+          </div>
+        </div>
       </div>
 
       {isImportOpen ? (
